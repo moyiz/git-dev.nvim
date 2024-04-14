@@ -6,7 +6,12 @@ A plugin to open remote Git repositories inside Neovim by managing ephemeral
 shallow clones automatically. It aims to provide a similar experience to
 `GitHub.dev` but directly within Neovim.
 
+## 📹 Demo
+[git-dev-2024-04-14_13.39.17.webm](https://github.com/moyiz/git-dev.nvim/assets/8603313/2f16bd70-d338-434d-a8d9-8b09cd75a7f4)
+
+
 - [git-dev.nvim](#git-devnvim)
+  - [:video_camera: Demo](video_camera-demo)
   - [:scroll: Features](#scroll-features)
   - [:hammer: Installation](#hammer-installation)
     - [Lazy](#lazy)
