@@ -110,6 +110,10 @@ end
 M.open = function(repo, ref, opts)
   local config = vim.tbl_deep_extend("force", M.defaults, opts or {})
 
+  if config.verbose then
+    vim.print(repo, ref, config)
+  end
+
   if ref == nil then
     ref = {}
   end
@@ -219,10 +223,15 @@ M.setup = function(opts)
   vim.fn.mkdir(M.defaults.repositories_dir, "p")
 
   -- Create commands
-  vim.api.nvim_create_user_command("GitDevOpen", function(cmd_opts)
-    vim.defer_fn(function()
-      require("git-dev").open(unpack(cmd_opts.fargs))
-    end, 0)
+  vim.api.nvim_create_user_command("GitDevOpen", function(cmd_args)
+    local repo, ref, cmd_opts = unpack(cmd_args.fargs)
+    if ref then
+      ref = load("return " .. ref)()
+    end
+    if cmd_opts then
+      cmd_opts = load("return " .. cmd_opts)()
+    end
+    require("git-dev").open(repo, ref, cmd_opts)
   end, {
     desc = "Open a git repository.",
     nargs = "*",
