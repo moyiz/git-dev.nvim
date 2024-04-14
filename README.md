@@ -1,6 +1,6 @@
 # git-dev.nvim
 
-Explore remote git repositories inside neovim (experimental).
+Open remote git repositories in the comfort of Neovim.
 
 A plugin to open remote Git repositories inside Neovim by managing ephemeral
 shallow clones automatically. It aims to provide a similar experience to
