@@ -13,6 +13,7 @@ shallow clones automatically. It aims to provide a similar experience to
   - [:blue_book: Usage / API](#blue_book-usage--api)
     - [:open_file_folder: Open](#open_file_folder-open)
       - [Parameters](#parameters)
+      - [Examples](#examples)
     - [:broom: Clean All](#broom-clean-all)
   - [:gear: Options](#gear-options)
   - [:notebook: Recipes](#notebook-recipes)
@@ -59,7 +60,17 @@ If more than one is specified, the priority is: `commit` > `tag` > `branch`.
 
 #### Examples
 ```lua
+-- :GitDevOpen moyiz/git-dev.nvim
+require("git-dev").open("moyiz/git-dev.nvim")
 
+-- :GitDevOpen derailed/k9s '{ tag = "v0.32.4" }'
+require("git-dev").open("derailed/k9s", { tag = "v0.32.4" })
+
+-- :GitDevOpen echasnovski/mini.nvim '{ branch = "stable" }' '{ ephemeral = false }'
+require("git-dev").open("echasnovski/mini.nvim", { branch = "stable "}, { ephemeral = false })
+
+-- :GitDevOpen https://git.savannah.gnu.org/git/bash.git '{}' '{ read_only = false }'
+require("git-dev").open("https://git.savannah.gnu.org/git/bash.git", {}, { read_only = false })
 ```
 
 ### :broom: Clean All
@@ -185,6 +196,7 @@ TBD
 - Telescope extension to view, open and manage cloned repositories (will
 require `ephemeral = false`).
 - Open repository in visual selection / current "word".
+- Asynchronous command invocation.
 - `vimdoc`
 
 ## License
