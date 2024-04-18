@@ -1,0 +1,14 @@
+git-dev-features	git-dev.txt	/*git-dev-features*
+git-dev-options	git-dev.txt	/*git-dev-options*
+git-dev-recipes	git-dev.txt	/*git-dev-recipes*
+git-dev-recipes-customize-uri	git-dev.txt	/*git-dev-recipes-customize-uri*
+git-dev-recipes-interactive-opening	git-dev.txt	/*git-dev-recipes-interactive-opening*
+git-dev-recipes-new-tab	git-dev.txt	/*git-dev-recipes-new-tab*
+git-dev-recipes-nvim-tree	git-dev.txt	/*git-dev-recipes-nvim-tree*
+git-dev-recipes-telescope	git-dev.txt	/*git-dev-recipes-telescope*
+git-dev-recipes-web-browser	git-dev.txt	/*git-dev-recipes-web-browser*
+git-dev-table-of-contents	git-dev.txt	/*git-dev-table-of-contents*
+git-dev-usage	git-dev.txt	/*git-dev-usage*
+git-dev-usage-clean-all	git-dev.txt	/*git-dev-usage-clean-all*
+git-dev-usage-open	git-dev.txt	/*git-dev-usage-open*
+git-dev.txt	git-dev.txt	/*git-dev.txt*

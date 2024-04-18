@@ -1,1 +1,258 @@
-dummy
+*git-dev.txt*            For NVIM v0.8.0            Last change: 2024 April 18
+
+==============================================================================
+Table of Contents                                  *git-dev-table-of-contents*
+
+1. Features                                                 |git-dev-features|
+2. Usage                                                       |git-dev-usage|
+  - Open                                                  |git-dev-usage-open|
+  - Clean All                                        |git-dev-usage-clean-all|
+3. Options                                                   |git-dev-options|
+4. Recipes                                                   |git-dev-recipes|
+  - Interactive Opening                  |git-dev-recipes-interactive-opening|
+  - nvim-tree                                      |git-dev-recipes-nvim-tree|
+  - New tab                                          |git-dev-recipes-new-tab|
+  - Web browser                                  |git-dev-recipes-web-browser|
+  - Customize URI                              |git-dev-recipes-customize-uri|
+  - Telescope                                      |git-dev-recipes-telescope|
+=============================================================================
+
+>
+                   / /           |                         /
+              ___   (___ ___  ___| ___           ___         _ _
+             |   )| |        |   )|___) \  )    |   ) \  )| | | )
+             |__/ | |__      |__/ |__    \/     |  /   \/ | |  /
+             __/                            -
+<
+
+Open remote git repositories in the comfort of Neovim.
+
+A plugin to open remote Git repositories inside Neovim by managing ephemeral
+shallow clones automatically. It aims to provide a similar experience to
+`GitHub.dev` but directly within Neovim.
+
+
+==============================================================================
+1. Features                                                 *git-dev-features*
+
+- Open remote Git repositories inside Neovim at branch, tag or commit.
+- Seamless integration with your workflow (e.g. LSP and tree-sitter).
+- Ephemeral repositories - cleanup when Neovim exits.
+
+
+==============================================================================
+2. Usage                                                       *git-dev-usage*
+
+
+OPEN                                                      *git-dev-usage-open*
+
+`API``require("git-dev").open(repo, ref, opts)`
+
+`Command``:GitDevOpen`
+
+Open the repository in Neovim.
+
+
+PARAMETERS ~
+
+- `repo` - `string` - A partial or full Git URI.
+- `ref` - `table` - Target reference to checkout (default: `nil`). Empty `ref`
+    will checkout the default branch.
+    Examples: `{ branch = "..." }|{ tag = "..." }|{ commit = "..." }`.
+    If more than one is specified, the priority is: `commit` > `tag` > `branch`.
+- `opts` - `table` - Override plugin configuration for this call (default:
+    `nil`). See |git-dev-options| below.
+
+
+EXAMPLES ~
+
+>lua
+    -- :GitDevOpen moyiz/git-dev.nvim
+    require("git-dev").open("moyiz/git-dev.nvim")
+    
+    -- :GitDevOpen derailed/k9s '{ tag = "v0.32.4" }'
+    require("git-dev").open("derailed/k9s", { tag = "v0.32.4" })
+    
+    -- :GitDevOpen echasnovski/mini.nvim '{ branch = "stable" }' '{ ephemeral = false }'
+    require("git-dev").open("echasnovski/mini.nvim", { branch = "stable "}, { ephemeral = false })
+    
+    -- :GitDevOpen https://git.savannah.gnu.org/git/bash.git '{}' '{ read_only = false }'
+    require("git-dev").open("https://git.savannah.gnu.org/git/bash.git", {}, { read_only = false })
+<
+
+
+CLEAN ALL                                            *git-dev-usage-clean-all*
+
+Clean all cached local repositories.
+
+**Caution**It will delete the repositories directory itself. If you changed the
+default value, make sure that the new directory is being used only for this
+purpose.
+
+By either using the lua function `require("git-dev").clean_all()` or the
+command `:GitDevCleanAll`.
+
+
+==============================================================================
+3. Options                                                   *git-dev-options*
+
+>lua
+    M.config = {
+      --- Whether to delete an opened repository when nvim exits.
+      --- If `true`, it will create an auto command for opened repositories
+      --- to delete the local directory when nvim exists.
+      ephemeral = true,
+      -- Set buffers of opened repositories to be read-only and unmodifiable.
+      read_only = true,
+      -- Whether / how to CD into opened repository.
+      -- Options: global|tab|window|none
+      cd_type = "global",
+      -- The actual `open` behavior.
+      ---@param dir string The path to the local repository.
+      ---@param repo_uri string The URI that was used to clone this repository.
+      opener = function(dir, repo_uri)
+        vim.print("Opening " .. repo_uri)
+        vim.cmd("edit " .. vim.fn.fnameescape(dir))
+      end,
+      -- Location of cloned repositories. Should be dedicated for this purpose.
+      repositories_dir = vim.fn.stdpath "cache" .. "/git-dev",
+      git = {
+        -- Name / path of `git` command.
+        command = "git",
+        -- Default organization if none is specified.
+        -- If given repository name does not contain '/' and `default_org` is
+        -- not `nil` nor empty, it will be prepended to the given name.
+        default_org = nil,
+        -- Base URI to use when given repository name is scheme-less.
+        base_uri_format = "https://github.com/%s.git",
+        -- Arguments for `git clone`.
+        -- Triggered when repository does not exist locally.
+        -- It will clone submodules too, disable it if it is too slow.
+        clone_args = "--depth=1 --jobs=2 --no-tags --single-branch "
+          .. "--recurse-submodules --shallow-submodules",
+        -- Arguments for `git fetch`.
+        -- Triggered when repository is already exists locally to refresh the local
+        -- copy.
+        fetch_args = "--depth=1 --jobs=2 --no-all --update-shallow -f "
+          .. "--prune --no-tags",
+      },
+      -- Print command outputs.
+      verbose = false,
+    }
+<
+
+
+==============================================================================
+4. Recipes                                                   *git-dev-recipes*
+
+
+INTERACTIVE OPENING                      *git-dev-recipes-interactive-opening*
+
+The sky is the limit. I have settled for this key binding at the moment (set
+via `lazy.nvim`):
+
+>lua
+    {
+      "moyiz/git-dev.nvim",
+      ...
+      keys = {
+        {
+          "<leader>go",
+          function()
+            local repo = vim.fn.input "Repository name / URI: "
+            if repo ~= "" then
+              require("git-dev").open(repo)
+            end
+          end,
+          desc = "[O]pen a remote git repository",
+        }
+      }
+      ...
+    }
+<
+
+
+NVIM-TREE                                          *git-dev-recipes-nvim-tree*
+
+To open with nvim-tree <https://github.com/nvim-tree/nvim-tree.lua>
+
+>lua
+    opts = {
+      opener = function(dir)
+        vim.cmd("NvimTreeOpen " .. vim.fn.fnameescape(dir))
+      end
+    }
+<
+
+
+NEW TAB                                              *git-dev-recipes-new-tab*
+
+Recommended. Repositories will be opened in a new tab and its CWD will be set.
+
+>lua
+    opts = {
+      cd_type = "tab",
+      opener = function(dir)
+        vim.cmd "tabnew"
+        vim.cmd("NvimTreeOpen " .. vim.fn.fnameescape(dir))
+      end
+    }
+<
+
+
+WEB BROWSER                                      *git-dev-recipes-web-browser*
+
+It does not make much sense on its own, but a showcase for getting both the
+repository URI and the local directory.
+
+>lua
+    opts = {
+      cd_type = "none",
+      opener = function(_, repo_uri)
+         -- vim.cmd("!librewolf " .. repo_uri)
+         vim.cmd("!firefox " .. repo_uri)
+      end
+    }
+<
+
+
+CUSTOMIZE URI                                  *git-dev-recipes-customize-uri*
+
+By default, this plugin accepts partial repository URI (e.g. `org/repo`) by
+applying it onto a format string. This behavior can be customized by setting
+`git.base_uri_format` to change the URI, or `git.default_org` to prepend a
+default organization name if the given repository name does not contain `/`.
+
+>lua
+    -- Change default URI
+    opts = {
+      git = {
+        base_uri_format = "https://git.home.arpa/%s.git",
+      }
+    }
+    
+    -- Open my own repositories by name with SSH.
+    -- E.g. "git-dev.nvim" rather than "moyiz/git-dev.nvim"
+    opts = {
+      git = {
+        default_org = "moyiz",
+        base_uri_format = "git@github.com:%s.git",
+      }
+    }
+    
+    -- Enforce only full URIs (do not accept partial names).
+    opts = {
+      git = {
+        base_uri_format = "%s"
+      }
+    }
+<
+
+
+TELESCOPE                                          *git-dev-recipes-telescope*
+
+TBD
+
+Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
+
+vim:tw=78:ts=8:noet:ft=help:norl:
