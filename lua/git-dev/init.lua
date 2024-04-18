@@ -1,20 +1,20 @@
-local augroup = vim.api.nvim_create_augroup("GitDev", { clear = true })
-
 local M = {}
 
-M.defaults = {
-  -- Whether to delete an opened repository when nvim is closed.
-  -- If `true`, it will create an auto command for opened repositories
-  -- to delete the local directory when nvim exists.
+M.config = {
+  --- Whether to delete an opened repository when nvim exits.
+  --- If `true`, it will create an auto command for opened repositories
+  --- to delete the local directory when nvim exists.
   ephemeral = true,
-  -- Set buffers of opened repositories to read-only and unmodifiable.
+  -- Set buffers of opened repositories to be read-only and unmodifiable.
   read_only = true,
   -- Whether / how to CD into opened repository.
   -- Options: global|tab|window|none
   cd_type = "global",
-  -- Accepts a repository directory path and opens it.
-  -- This function does the "open" part of the repository.
-  opener = function(dir)
+  -- The actual `open` behavior.
+  ---@param dir string The path to the local repository.
+  ---@param repo_uri string The URI that was used to clone this repository.
+  opener = function(dir, repo_uri)
+    vim.print("Opening " .. repo_uri)
     vim.cmd("edit " .. vim.fn.fnameescape(dir))
   end,
   -- Location of cloned repositories. Should be dedicated for this purpose.
@@ -24,24 +24,29 @@ M.defaults = {
     command = "git",
     -- Default organization if none is specified.
     -- If given repository name does not contain '/' and `default_org` is
-    -- not `nil` nor empty, it will be prepend to the given name.
+    -- not `nil` nor empty, it will be prepended to the given name.
     default_org = nil,
     -- Base URI to use when given repository name is scheme-less.
     base_uri_format = "https://github.com/%s.git",
-    -- Arguments for `git clone`. Triggered when repository does not
-    -- exist locally.
+    -- Arguments for `git clone`.
+    -- Triggered when repository does not exist locally.
     -- It will clone submodules too, disable it if it is too slow.
     clone_args = "--depth=1 --jobs=2 --no-tags --single-branch "
       .. "--recurse-submodules --shallow-submodules",
-    -- Arguments for `git fetch`. Triggered when repository is already exists
-    -- locally to refresh the local copy.
+    -- Arguments for `git fetch`.
+    -- Triggered when repository is already exists locally to refresh the local
+    -- copy.
     fetch_args = "--depth=1 --jobs=2 --no-all --update-shallow -f "
       .. "--prune --no-tags",
   },
-  -- Show command outputs in :messages
+  -- Print command outputs.
   verbose = false,
 }
 
+--- CD command wrapper.
+---@param cmd string A CD-like command (cd, lcd, tcd, ....).
+---@return function(string,boolean) Invokes the CD-like command on given path.
+---@private
 local function change_directory(cmd)
   return function(path, silent)
     return vim.api.nvim_cmd(
@@ -55,14 +60,14 @@ local cd_func = {
   global = change_directory "cd",
   tab = change_directory "tcd",
   window = change_directory "lcd",
-  none = function(_) end,
+  none = function(_, _) end,
 }
 
 -- Generates a function to trigger a deletion of `repo_path`
 local function clean_repo_callback(repo_path)
   return function()
     local is_deleted = vim.fn.delete(repo_path, "rf")
-    if M.defaults.verbose then
+    if M.config.verbose then
       local msg
       if is_deleted == 0 then
         msg = "Deleted: " .. repo_path
@@ -101,14 +106,22 @@ local function git_uri(repo, default_org, base_uri)
   return base_uri:format(repo)
 end
 
--- Opens a repository.
--- It will clone / refresh repository directory,
--- `repo` is either a scheme-less string or a Git URI.
--- `ref` = { branch = "..." } | { tag = "..." } | { "commit": "..." }
--- If more than one is specified, the priority is: `commit` > `tag` > `branch`
--- `opts` A table to override plugin settings.
+local augroup = vim.api.nvim_create_augroup("GitDev", { clear = true })
+
+---@class GitRef Holds a reference for a repository. At least one field must
+--- not be `nil`.
+---@field branch string|nil
+---@field tag string|nil
+---@field commit string|nil
+
+---Opens a repository.
+---It will clone / refresh repository directory,
+---@param repo string Git URI or repository name.
+---@param ref GitRef If more than one is specified, the priority is:
+--- `commit` > `tag` > `branch`
+---@param opts table Override plugin settings.
 M.open = function(repo, ref, opts)
-  local config = vim.tbl_deep_extend("force", M.defaults, opts or {})
+  local config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   if config.verbose then
     vim.print(repo, ref, config)
@@ -132,7 +145,7 @@ M.open = function(repo, ref, opts)
     table.insert(output, "GitDev: Refreshing " .. repo_path)
     table.insert(
       output,
-      vim.fn.system(
+      vim.fn.systemlist(
         config.git.command
           .. " -C "
           .. repo_path
@@ -144,7 +157,7 @@ M.open = function(repo, ref, opts)
     -- Fresh clone
     table.insert(
       output,
-      vim.fn.system(
+      vim.fn.systemlist(
         config.git.command
           .. " clone "
           .. config.git.clone_args
@@ -169,7 +182,7 @@ M.open = function(repo, ref, opts)
   if ref.commit then
     table.insert(
       output,
-      vim.fn.system(
+      vim.fn.systemlist(
         config.git.command
           .. " -C "
           .. repo_path
@@ -191,7 +204,7 @@ M.open = function(repo, ref, opts)
     })
   end
 
-  config.opener(repo_path)
+  config.opener(repo_path, repo_uri)
 
   -- CD into repository directory
   cd_func[config.cd_type](vim.fn.fnameescape(repo_path), not config.verbose)
@@ -209,18 +222,20 @@ M.open = function(repo, ref, opts)
   end
 end
 
--- Clean all repositories in the repositories directory
--- DANGER: Make sure that the repositories directory is exclusive to
--- this plugin.
+---Clean all repositories in the repositories directory
+---DANGER: Make sure that the repositories directory is exclusive to
+---this plugin.
 M.clean_all = function()
-  vim.fn.delete(M.defaults.repositories_dir)
+  vim.fn.delete(M.config.repositories_dir)
 end
 
+---Module Setup
+---@param opts table|nil Module config table. See |M.config|.
 M.setup = function(opts)
-  M.defaults = vim.tbl_deep_extend("force", M.defaults, opts or {})
+  M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   -- Create repositories directory if not exists.
-  vim.fn.mkdir(M.defaults.repositories_dir, "p")
+  vim.fn.mkdir(M.config.repositories_dir, "p")
 
   -- Create commands
   vim.api.nvim_create_user_command("GitDevOpen", function(cmd_args)
