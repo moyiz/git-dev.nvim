@@ -121,6 +121,11 @@ local augroup = vim.api.nvim_create_augroup("GitDev", { clear = true })
 --- `commit` > `tag` > `branch`
 ---@param opts table Override plugin settings.
 M.open = function(repo, ref, opts)
+  if not repo then
+    vim.notify "Missing repository. See |:h git-dev-usage-open|"
+    return
+  end
+
   local config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   if config.verbose then
