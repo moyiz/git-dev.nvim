@@ -37,12 +37,17 @@ shallow clones automatically. It aims to provide a similar experience to
     - [Examples](#examples)
   - [:broom: Clean All](#broom-clean-all)
 - [:gear: Options](#gear-options)
+- [:spider_web: URL Parsing (experimental)](#spider_web-url-parsing-experimental)
+  - [Supported URLs](#supported-urls)
+  - [Examples](#examples)
+  - [Limitations](#limitations)
 - [:notebook: Recipes](#notebook-recipes)
   - [:grey_question: Interactive Opening](#grey_question-interactive-opening)
   - [:evergreen_tree: nvim-tree](#evergreen_tree-nvim-tree)
   - [:bookmark_tabs: New tab](#bookmark_tabs-new-tab)
   - [:fox_face: Web browser](#fox_face-web-browser)
-  - [Customize URI](#customize-uri)
+  - [:lower_left_paintbrush: Customize URI](#lower_left_paintbrush-customize-uri)
+  - [:house_with_garden: Private Git Instance](#house_with_garden-private-git-instance)
   - [:telescope: Telescope](#telescope-telescope)
 - [:crystal_ball: Future Plans / Thoughts](#crystal_ball-future-plans--thoughts)
 - [:scroll: License](#scroll-license)
@@ -51,6 +56,7 @@ shallow clones automatically. It aims to provide a similar experience to
 
 ## :art: Features
 - Open remote Git repositories inside Neovim at branch, tag or commit.
+- Supports most URLs from GitHub, GitLab, Gitea and Codeberg.
 - Seamless integration with your workflow (e.g. LSP and tree-sitter).
 - Ephemeral repositories - cleanup when Neovim exits.
 
@@ -74,9 +80,9 @@ See [Options](#gear-options).
 
 ## :blue_book: Usage
 ### :open_file_folder: Open
-`API`: `require("git-dev").open(repo, ref, opts)`
+API: `require("git-dev").open(repo, ref, opts)`
 
-`Command`: `:GitDevOpen`
+Command: `GitDevOpen`
 
 Open the repository in Neovim.
 
@@ -112,15 +118,15 @@ the default value, make sure that the new directory is being used only for this
 purpose.
 
 By either using the lua function `require("git-dev").clean_all()` or the command
-`:GitDevCleanAll`.
+`GitDevCleanAll`.
 
 
 ## :gear: Options
 ```lua
 M.config = {
-  --- Whether to delete an opened repository when nvim exits.
-  --- If `true`, it will create an auto command for opened repositories
-  --- to delete the local directory when nvim exists.
+  -- Whether to delete an opened repository when nvim exits.
+  -- If `true`, it will create an auto command for opened repositories
+  -- to delete the local directory when nvim exists.
   ephemeral = true,
   -- Set buffers of opened repositories to be read-only and unmodifiable.
   read_only = true,
@@ -130,12 +136,18 @@ M.config = {
   -- The actual `open` behavior.
   ---@param dir string The path to the local repository.
   ---@param repo_uri string The URI that was used to clone this repository.
-  opener = function(dir, repo_uri)
+  ---@param selected_path? string A relative path to a file in this repository.
+  opener = function(dir, repo_uri, selected_path)
     vim.print("Opening " .. repo_uri)
-    vim.cmd("edit " .. vim.fn.fnameescape(dir))
+    local dest =
+      vim.fn.fnameescape(selected_path and dir .. "/" .. selected_path or dir)
+    vim.cmd("edit " .. dest)
   end,
   -- Location of cloned repositories. Should be dedicated for this purpose.
   repositories_dir = vim.fn.stdpath "cache" .. "/git-dev",
+  -- Extend the builtin URL parsers.
+  -- Should map domains to parse functions. See |parser.lua|.
+  extra_domain_to_parser = nil,
   git = {
     -- Name / path of `git` command.
     command = "git",
@@ -148,18 +160,107 @@ M.config = {
     -- Arguments for `git clone`.
     -- Triggered when repository does not exist locally.
     -- It will clone submodules too, disable it if it is too slow.
-    clone_args = "--depth=1 --jobs=2 --no-tags --single-branch "
-      .. "--recurse-submodules --shallow-submodules",
+    clone_args = "--jobs=2 --single-branch --recurse-submodules "
+      .. "--shallow-submodules",
     -- Arguments for `git fetch`.
     -- Triggered when repository is already exists locally to refresh the local
     -- copy.
-    fetch_args = "--depth=1 --jobs=2 --no-all --update-shallow -f "
-      .. "--prune --no-tags",
+    fetch_args = "--jobs=2 --no-all --update-shallow -f --prune --no-tags",
+    -- Arguments for `git checkout`.
+    -- Triggered when a branch, tag or commit is given.
+    checkout_args = "-f --recurse-submodules",
   },
   -- Print command outputs.
   verbose = false,
 }
 ```
+
+## :spider_web: URL Parsing (experimental)
+It is reasonable to assume that browsing arbitrary Git repositories will 
+probably begin in a web browser. The main purpose of this feature is to allow 
+quicker transition from the currently viewed branch / tag / commit / file to 
+Neovim.
+
+This plugin supports multiple types and flavors of URLs. It will accept most
+GitHub, GitLab, Gitea and Codeberg URLs, and will try to extract the actual
+git repository URL, selected branch / tag / commit and selected file.
+
+If such extraction was successful, `opener` will be provided with
+`selected_path`, which is a relative path of a file in the repository. Its main
+use-case is to auto-open currently viewed file.
+
+Nested branches (contain slashes) are supported.
+
+Notice that passing explicit `ref` to `GitDevOpen` will take precedence on
+parsed fields.
+
+### Supported URLs
+- GitHub
+  - `https://github.com/<repo>`
+  - `https://github.com/<repo>.git`
+  - `https://github.com/<repo>/tree/<branch>`
+  - `https://github.com/<repo>/tree/<tag>`
+  - `https://github.com/<repo>/blob/<branch>`
+  - `https://github.com/<repo>/blob/<branch>/<file_path>`
+  - `https://github.com/<repo>/blob/<tag>`
+  - `https://github.com/<repo>/blob/<tag>/<file_path>`
+- GitLab
+  - `https://gitlab.com/<repo>`
+  - `https://gitlab.com/<repo>.git`
+  - `https://gitlab.com/<repo>/-/tree/<branch>`
+  - `https://gitlab.com/<repo>/-/tree/<tag>`
+  - `https://gitlab.com/<repo>/-/blob/<branch>`
+  - `https://gitlab.com/<repo>/-/blob/<branch>/<file_path>`
+  - `https://gitlab.com/<repo>/-/blob/<tag>`
+  - `https://gitlab.com/<repo>/-/blob/<tag>/<file_path>`
+- Gitea
+  - `https://gitea.com/<repo>`
+  - `https://gitea.com/<repo>.git`
+  - `https://gitea.com/<repo>/(src|raw)/tag/<tag>`
+  - `https://gitea.com/<repo>/(src|raw)/tag/<tag>/<file_path>`
+  - `https://gitea.com/<repo>/(src|raw)/branch/<branch>`
+  - `https://gitea.com/<repo>/(src|raw)/branch/<branch>/<file_path>`
+  - `https://gitea.com/<repo>/(src|raw)/commit/<commit_id>`
+  - `https://gitea.com/<repo>/(src|raw)/commit/<commit_id>/<file_path>`
+- Codeberg - Same as Gitea.
+
+### Examples
+Open `README.md` in main branch:
+```lua
+require("git-dev").open("https://github.com/echasnovski/mini.nvim/blob/main/README.md")
+```
+Parser output:
+```lua
+{
+  branch = "main",
+  repo_url = "https://github.com/echasnovski/mini.nvim.git",
+  selected_path = "README.md",
+  type = "http"
+}
+```
+
+Open `cmd/scan/main.go` in `acook/generic_docker_source_entry` branch:
+```lua
+require("git-dev").open("https://gitlab.com/gitlab-org/code-creation/repository-x-ray/-/blob/acook/generic_docker_source_entry/cmd/scan/main.go")
+```
+Parser output:
+```lua
+{
+  branch = "acook/generic_docker_source_entry",
+  repo_url = "https://gitlab.com/gitlab-org/code-creation/repository-x-ray.git",
+  selected_path = "cmd/scan/main.go",
+  type = "http"
+}
+```
+
+See `lua/git-dev/parser_spec.lua` for more examples.
+
+(Or: `GitDevOpen https://github.com/moyiz/git-dev/blob/master/lua/git-dev/parser_spec.lua`)
+
+### Limitations
+Notice this feature is quite experimental. If you encounter any issues or have
+any questions or requests, feel free to reach out.
+
 
 ## :notebook: Recipes
 ### :grey_question: Interactive Opening
@@ -191,6 +292,8 @@ To open with [nvim-tree](https://github.com/nvim-tree/nvim-tree.lua):
 ```lua
 opts = {
   opener = function(dir)
+    -- vim.cmd("Neotree " .. dir)
+    -- vim.cmd("Oil " .. vim.fn.fnameescape(dir))
     vim.cmd("NvimTreeOpen " .. vim.fn.fnameescape(dir))
   end
 }
@@ -223,7 +326,7 @@ opts = {
 }
 ```
 
-### Customize URI
+### :lower_left_paintbrush: Customize URI
 By default, this plugin accepts partial repository URI (e.g. `org/repo`) by
 applying it onto a format string. This behavior can be customized by setting
 `git.base_uri_format` to change the URI, or `git.default_org` to prepend a
@@ -254,6 +357,34 @@ opts = {
 }
 ```
 
+### :house_with_garden: Private Git Instance
+All repositories in my home Gitea service are private. Cloning such repositories
+using HTTP URLs will require inserting user and password. Since my SSH keys are
+already set, a custom parser can workaround it by leveraging the `domain`
+parameter of the parser function.
+```lua
+opts = {
+  extra_domain_to_parser = {
+    ["git.home.arpa"] = function(parser, text, _)
+      text = text:gsub("https://([^/]+)/(.*)$", "ssh://git@%1:2222/%2")
+      return parser:parse_gitea_like_url(text, "ssh://git@git.home.arpa:2222")
+    end,
+  },
+}
+```
+Notice that my Gitea service listens on port 2222 for SSH. This custom parser
+tricks `parse_gitea_like_url` by converting a HTTP URL to SSH like URL (which 
+is not a valid git URI). I.e. `https://git.home.arpa/homelab/k8s/src/commit/ef3fec4973042f0e0357a136d927fe2839350170/apps/gitea/kustomization.yaml` ->`ssh://git@git.home.arpa:2222/homelab/k8s/src/commit/ef3fec4973042f0e0357a136d927fe2839350170/apps/gitea/kustomization.yaml`.
+Then, the parser trims the "domain" and proceeds as usual. Output:
+```lua
+{
+  commit = "ef3fec4973042f0e0357a136d927fe2839350170",
+  repo_url = "ssh://git@git.home.arpa:2222/homelab/k8s.git",
+  selected_path = "apps/gitea/kustomization.yaml",
+  type = "http"
+}
+```
+
 ### :telescope: Telescope
 TBD
 
@@ -264,7 +395,6 @@ TBD
 require `ephemeral = false`).
 - Open repository in visual selection / current "word".
 - Asynchronous command invocation.
-- `vimdoc`
 
 ## :scroll: License
 See [License](./LICENSE).

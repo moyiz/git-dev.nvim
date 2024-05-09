@@ -1,9 +1,9 @@
 local M = {}
 
 M.config = {
-  --- Whether to delete an opened repository when nvim exits.
-  --- If `true`, it will create an auto command for opened repositories
-  --- to delete the local directory when nvim exists.
+  -- Whether to delete an opened repository when nvim exits.
+  -- If `true`, it will create an auto command for opened repositories
+  -- to delete the local directory when nvim exists.
   ephemeral = true,
   -- Set buffers of opened repositories to be read-only and unmodifiable.
   read_only = true,
@@ -13,12 +13,18 @@ M.config = {
   -- The actual `open` behavior.
   ---@param dir string The path to the local repository.
   ---@param repo_uri string The URI that was used to clone this repository.
-  opener = function(dir, repo_uri)
+  ---@param selected_path? string A relative path to a file in this repository.
+  opener = function(dir, repo_uri, selected_path)
     vim.print("Opening " .. repo_uri)
-    vim.cmd("edit " .. vim.fn.fnameescape(dir))
+    local dest =
+      vim.fn.fnameescape(selected_path and dir .. "/" .. selected_path or dir)
+    vim.cmd("edit " .. dest)
   end,
   -- Location of cloned repositories. Should be dedicated for this purpose.
   repositories_dir = vim.fn.stdpath "cache" .. "/git-dev",
+  -- Extend the builtin URL parsers.
+  -- Should map domains to parse functions. See |parser.lua|.
+  extra_domain_to_parser = nil,
   git = {
     -- Name / path of `git` command.
     command = "git",
@@ -31,16 +37,15 @@ M.config = {
     -- Arguments for `git clone`.
     -- Triggered when repository does not exist locally.
     -- It will clone submodules too, disable it if it is too slow.
-    clone_args = "--depth=1 --jobs=2 --no-tags --single-branch "
-      .. "--recurse-submodules --shallow-submodules",
+    clone_args = "--jobs=2 --single-branch --recurse-submodules "
+      .. "--shallow-submodules",
     -- Arguments for `git fetch`.
     -- Triggered when repository is already exists locally to refresh the local
     -- copy.
-    fetch_args = "--depth=1 --jobs=2 --no-all --update-shallow -f "
-      .. "--prune --no-tags",
-    -- Arguments for `git reset`.
-    -- Triggered when opening a repository at specific commit hash.
-    reset_args = "",
+    fetch_args = "--jobs=2 --no-all --update-shallow -f --prune --no-tags",
+    -- Arguments for `git checkout`.
+    -- Triggered when a branch, tag or commit is given.
+    checkout_args = "-f --recurse-submodules",
   },
   -- Print command outputs.
   verbose = false,
@@ -94,35 +99,20 @@ local function git_uri_to_dir_name(uri, branch)
   return dir_name
 end
 
--- Returns a valid git URI from `repo`.
--- It basically checks whether `repo` is already a URI,
--- and if not, it formats `base_uri` with it.
--- If `repo` does not contain '/' and `default_org` is given, prepend it.
-local function git_uri(repo, default_org, base_uri)
-  -- Check if `repo` has scheme or is ssh-like.
-  if repo:match "://" or repo:match "@.*:" then
-    return repo
-  end
-  if default_org and default_org ~= "" and not repo:match "/" then
-    repo = default_org .. "/" .. repo
-  end
-  return base_uri:format(repo)
-end
-
 local augroup = vim.api.nvim_create_augroup("GitDev", { clear = true })
 
 ---@class GitRef Holds a reference for a repository. At least one field must
 --- not be `nil`.
----@field branch string?
----@field tag string?
----@field commit string?
+---@field branch? string
+---@field tag? string
+---@field commit? string
 
 ---Opens a repository.
 ---It will clone / refresh repository directory,
 ---@param repo string Git URI or repository name.
----@param ref GitRef? If more than one is specified, the priority is:
+---@param ref? GitRef If more than one is specified, the priority is:
 --- `commit` > `tag` > `branch`.
----@param opts table? Override plugin settings.
+---@param opts? table Override plugin settings.
 M.open = function(repo, ref, opts)
   if not repo then
     vim.notify "Missing repository. See |:h git-dev-usage-open|"
@@ -132,50 +122,61 @@ M.open = function(repo, ref, opts)
 
   local config = vim.tbl_deep_extend("force", M.config, opts or {})
 
-  if config.verbose then
-    vim.print(repo, ref, config)
+  local gitcmd = require("git-dev.gitcmd"):init { cmd = config.git.command }
+  local parser = require("git-dev.parser"):init {
+    gitcmd = gitcmd,
+    base_uri_format = config.git.base_uri_format,
+    extra_domain_to_parser = config.extra_domain_to_parser,
+  }
+
+  local parsed_repo = parser:parse(repo)
+  local branch = ref.commit
+    or ref.tag
+    or ref.branch
+    or parsed_repo.commit
+    or parsed_repo.branch
+
+  if not branch and parsed_repo.full_blob then
+    vim.notify "Could not detect branch / tag / commit in given URI."
   end
 
-  local branch = ref.tag or ref.branch
-
-  local repo_uri =
-    git_uri(repo, config.git.default_org, config.git.base_uri_format)
   local repo_dir = config.repositories_dir
     .. "/"
-    .. git_uri_to_dir_name(repo_uri, ref.commit or branch)
-  local output = {}
+    .. git_uri_to_dir_name(parsed_repo.repo_url, branch)
 
-  local gitcmd = require("git-dev.gitcmd"):init { cmd = config.git.command }
+  if config.verbose then
+    vim.print("Input:", repo, "Parsed:", parsed_repo, "Ref:", branch)
+  end
 
+  local verbose = {}
   if vim.fn.isdirectory(repo_dir) == 1 then
-    -- Refresh repo
-    table.insert(output, "GitDev: Refreshing " .. repo_dir)
-    table.insert(output, gitcmd:refresh(repo_dir, config.git.fetch_args))
+    table.insert(verbose, gitcmd:refresh(repo_dir, config.git.fetch_args))
   else
     -- Fresh clone
     table.insert(
-      output,
-      gitcmd:clone(repo_uri, repo_dir, branch, config.git.clone_args)
+      verbose,
+      gitcmd:clone(parsed_repo.repo_url, repo_dir, nil, config.git.clone_args)
     )
     if vim.fn.isdirectory(repo_dir) == 0 then
       if config.verbose then
-        vim.notify(vim.fn.join(output, "\n"))
+        vim.notify(vim.fn.join(verbose, "\n"))
       end
-      vim.notify("Repository not found at: " .. repo_uri .. ", aborting...")
+      vim.notify(
+        "Repository not found at: " .. parsed_repo.repo_url .. ", aborting..."
+      )
       return false
     end
   end
 
-  -- Reset to commit hash if specified.
-  if ref.commit then
+  if branch then
     table.insert(
-      output,
-      gitcmd:reset(repo_dir, ref.commit, config.git.reset_args)
+      verbose,
+      gitcmd:checkout(repo_dir, branch, config.git.checkout_args)
     )
   end
 
   if config.verbose then
-    vim.notify(vim.fn.join(output, "\n"))
+    vim.notify(vim.fn.join(verbose, "\n"))
   end
 
   if config.ephemeral then
@@ -186,10 +187,11 @@ M.open = function(repo, ref, opts)
     })
   end
 
-  config.opener(repo_dir, repo_uri)
-
   -- CD into repository directory
   cd_func[config.cd_type](vim.fn.fnameescape(repo_dir), not config.verbose)
+
+  -- Open directory (or selected path)
+  config.opener(repo_dir, parsed_repo.repo_url, parsed_repo.selected_path)
 
   if config.read_only then
     -- Set all buffers in the repository directory as read-only
@@ -212,7 +214,7 @@ M.clean_all = function()
 end
 
 ---Module Setup
----@param opts table? Module config table. See |M.config|.
+---@param opts? table Module config table. See |M.config|.
 M.setup = function(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
