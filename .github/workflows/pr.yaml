@@ -1,0 +1,31 @@
+name: Lint and Test
+on:
+  - pull_request
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - if: env.ACT == 'true'
+        run: |
+          apt-get update && apt-get install -y unzip && apt-get clean
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: "latest"
+          args: --check .
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+      - uses: actions/checkout@v4
+      - if: env.ACT == 'true'
+        run: |
+          apt-get update
+          apt-get install -y make git
+          apt-get clean
+      - run: |
+          make test
