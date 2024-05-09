@@ -1,9 +1,9 @@
 local GitCmd = {}
 
----@class GitCmdInit
+---@class GitCmd
 ---@field cmd? string : Path to `git` command. Default: "git".
 
----@param o GitCmdInit
+---@param o GitCmd
 function GitCmd:init(o)
   o = vim.tbl_deep_extend("force", { cmd = "git" }, o or {})
   setmetatable(o, self)
@@ -30,6 +30,22 @@ function GitCmd:clone(repo_url, repo_dir, branch, extra_args)
   )
 end
 
+---Checks out a branch, tag or commit.
+---@param repo_dir string
+---@param ref string
+---@param extra_args? string
+function GitCmd:checkout(repo_dir, ref, extra_args)
+  return vim.fn.systemlist(
+    self.cmd
+      .. " -C "
+      .. repo_dir
+      .. " checkout "
+      .. (extra_args or "")
+      .. " "
+      .. ref
+  )
+end
+
 ---Refreshes local objects and refs from remote.
 ---@param repo_dir string : Local path to git repository.
 ---@param extra_args? string
@@ -41,7 +57,7 @@ end
 
 ---Hard resets a local repository to given reference.
 ---@param repo_dir string : Local path to git repository.
----@param ref string
+---@param ref? string
 ---@param extra_args? string
 function GitCmd:reset(repo_dir, ref, extra_args)
   return vim.fn.systemlist(
@@ -51,7 +67,7 @@ function GitCmd:reset(repo_dir, ref, extra_args)
       .. " reset --hard "
       .. (extra_args or "")
       .. " "
-      .. ref
+      .. (ref or "")
   )
 end
 
