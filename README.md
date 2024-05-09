@@ -44,9 +44,10 @@ shallow clones automatically. It aims to provide a similar experience to
 - [:notebook: Recipes](#notebook-recipes)
   - [:grey_question: Interactive Opening](#grey_question-interactive-opening)
   - [:evergreen_tree: nvim-tree](#evergreen_tree-nvim-tree)
+  - [:evergreen_tree: neo-tree](#evergreen_tree-neo-tree)
   - [:bookmark_tabs: New tab](#bookmark_tabs-new-tab)
   - [:fox_face: Web browser](#fox_face-web-browser)
-  - [:lower_left_paintbrush: Customize URI](#lower_left_paintbrush-customize-uri)
+  - [:pencil: Customizing Default URL](#pencil-customizing-default-url)
   - [:house_with_garden: Private Git Instance](#house_with_garden-private-git-instance)
   - [:telescope: Telescope](#telescope-telescope)
 - [:crystal_ball: Future Plans / Thoughts](#crystal_ball-future-plans--thoughts)
@@ -74,6 +75,17 @@ Use your favorite plugin manager:
   opts = {},
 }
 ```
+
+Lazier (documentation will not be available until first use):
+```lua
+{
+  "moyiz/git-dev.nvim",
+  lazy = true,
+  cmd = { "GitDevOpen", "GitDevCleanAll" },
+  opts = {},
+}
+```
+
 See [Options](#gear-options).
 
 <!-- panvimdoc-ignore-end -->
@@ -291,10 +303,24 @@ To open with [nvim-tree](https://github.com/nvim-tree/nvim-tree.lua):
 
 ```lua
 opts = {
-  opener = function(dir)
-    -- vim.cmd("Neotree " .. dir)
+  opener = function(dir, _, selected_path)
     -- vim.cmd("Oil " .. vim.fn.fnameescape(dir))
     vim.cmd("NvimTreeOpen " .. vim.fn.fnameescape(dir))
+    if selected_path then
+      vim.cmd("edit " .. selected_path)
+    end
+  end
+}
+```
+
+### :evergreen_tree: neo-tree
+```lua
+opts = {
+  opener = function(dir, _, selected_path)
+    vim.cmd("Neotree " .. dir)
+    if selected_path then
+      vim.cmd("edit " .. selected_path)
+    end
   end
 }
 ```
@@ -305,28 +331,31 @@ Recommended. Repositories will be opened in a new tab and its CWD will be set.
 ```lua
 opts = {
   cd_type = "tab",
-  opener = function(dir)
+  opener = function(dir, _, selected_path)
     vim.cmd "tabnew"
-    vim.cmd("NvimTreeOpen " .. vim.fn.fnameescape(dir))
+    vim.cmd("Neotree " .. dir)
+    if selected_path then
+      vim.cmd("edit " .. selected_path)
+    end
   end
 }
 ```
 
 ### :fox_face: Web browser
 It does not make much sense on its own, but a showcase for getting both the
-repository URI and the local directory.
+repository URL and the local directory.
 
 ```lua
 opts = {
   cd_type = "none",
-  opener = function(_, repo_uri)
-     -- vim.cmd("!librewolf " .. repo_uri)
-     vim.cmd("!firefox " .. repo_uri)
+  opener = function(_, repo_url)
+     -- vim.cmd("!librewolf " .. repo_url)
+     vim.cmd("!firefox " .. repo_url)
   end
 }
 ```
 
-### :lower_left_paintbrush: Customize URI
+### :pencil: Customizing Default URL
 By default, this plugin accepts partial repository URI (e.g. `org/repo`) by
 applying it onto a format string. This behavior can be customized by setting
 `git.base_uri_format` to change the URI, or `git.default_org` to prepend a
@@ -374,7 +403,15 @@ opts = {
 ```
 Notice that my Gitea service listens on port 2222 for SSH. This custom parser
 tricks `parse_gitea_like_url` by converting a HTTP URL to SSH like URL (which 
-is not a valid git URI). I.e. `https://git.home.arpa/homelab/k8s/src/commit/ef3fec4973042f0e0357a136d927fe2839350170/apps/gitea/kustomization.yaml` ->`ssh://git@git.home.arpa:2222/homelab/k8s/src/commit/ef3fec4973042f0e0357a136d927fe2839350170/apps/gitea/kustomization.yaml`.
+is not a valid git URI). I.e. 
+```
+https://git.home.arpa/homelab/k8s/src/commit/ef3fec4973042f0e0357a136d927fe2839350170/apps/gitea/kustomization.yaml
+```
+To:
+```
+ssh://git@git.home.arpa:2222/homelab/k8s/src/commit/ef3fec4973042f0e0357a136d927fe2839350170/apps/gitea/kustomization.yaml
+```
+
 Then, the parser trims the "domain" and proceeds as usual. Output:
 ```lua
 {
