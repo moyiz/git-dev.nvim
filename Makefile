@@ -56,4 +56,8 @@ panvimdoc-build:
 		echo "Not using docker"; \
 	fi
 
+.PHONY: test
+test:
+	nvim --headless --clean -c 'set runtimepath+=.' -c 'lua require("git-dev.parser_spec").run()' -c qa
+
 # vim: ft=make ts=4 noexpandtab
