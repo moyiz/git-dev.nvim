@@ -1,4 +1,4 @@
-*git-dev.txt*             For NVIM v0.8.0             Last change: 2024 May 11
+*git-dev.txt*             For NVIM v0.8.0             Last change: 2024 May 26
 
 ==============================================================================
 Table of Contents                                  *git-dev-table-of-contents*
