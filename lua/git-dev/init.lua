@@ -74,6 +74,7 @@ local cd_func = {
 -- Generates a function to trigger a deletion of `repo_dir`
 local function clean_repo_callback(repo_dir)
   return function()
+    vim.print("Cleaning " .. repo_dir)
     local is_deleted = vim.fn.delete(repo_dir, "rf")
     if M.config.verbose then
       local msg
@@ -82,7 +83,7 @@ local function clean_repo_callback(repo_dir)
       else
         msg = "Not found: " .. repo_dir
       end
-      vim.fn.notify(msg)
+      vim.print(msg)
     end
   end
 end
@@ -155,7 +156,12 @@ M.open = function(repo, ref, opts)
     -- Fresh clone
     table.insert(
       verbose,
-      gitcmd:clone(parsed_repo.repo_url, repo_dir, nil, config.git.clone_args)
+      gitcmd:clone(
+        parsed_repo.repo_url,
+        repo_dir,
+        parsed_repo.branch,
+        config.git.clone_args
+      )
     )
     if vim.fn.isdirectory(repo_dir) == 0 then
       if config.verbose then
