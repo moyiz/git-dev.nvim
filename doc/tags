@@ -10,11 +10,12 @@ git-dev-recipes-private-git-instance	git-dev.txt	/*git-dev-recipes-private-git-i
 git-dev-recipes-telescope	git-dev.txt	/*git-dev-recipes-telescope*
 git-dev-recipes-web-browser	git-dev.txt	/*git-dev-recipes-web-browser*
 git-dev-table-of-contents	git-dev.txt	/*git-dev-table-of-contents*
-git-dev-url-parsing-(experimental)	git-dev.txt	/*git-dev-url-parsing-(experimental)*
-git-dev-url-parsing-(experimental)-examples	git-dev.txt	/*git-dev-url-parsing-(experimental)-examples*
-git-dev-url-parsing-(experimental)-limitations	git-dev.txt	/*git-dev-url-parsing-(experimental)-limitations*
-git-dev-url-parsing-(experimental)-supported-urls	git-dev.txt	/*git-dev-url-parsing-(experimental)-supported-urls*
+git-dev-url-parsing	git-dev.txt	/*git-dev-url-parsing*
+git-dev-url-parsing-examples	git-dev.txt	/*git-dev-url-parsing-examples*
+git-dev-url-parsing-limitations	git-dev.txt	/*git-dev-url-parsing-limitations*
+git-dev-url-parsing-supported-urls	git-dev.txt	/*git-dev-url-parsing-supported-urls*
 git-dev-usage	git-dev.txt	/*git-dev-usage*
 git-dev-usage-clean-all	git-dev.txt	/*git-dev-usage-clean-all*
 git-dev-usage-open	git-dev.txt	/*git-dev-usage-open*
+git-dev-usage-parse	git-dev.txt	/*git-dev-usage-parse*
 git-dev.txt	git-dev.txt	/*git-dev.txt*

@@ -1,4 +1,4 @@
-*git-dev.txt*             For NVIM v0.8.0             Last change: 2024 May 26
+*git-dev.txt*             For NVIM v0.8.0             Last change: 2024 May 27
 
 ==============================================================================
 Table of Contents                                  *git-dev-table-of-contents*
@@ -7,11 +7,12 @@ Table of Contents                                  *git-dev-table-of-contents*
 2. Usage                                                       |git-dev-usage|
   - Open                                                  |git-dev-usage-open|
   - Clean All                                        |git-dev-usage-clean-all|
+  - Parse                                                |git-dev-usage-parse|
 3. Options                                                   |git-dev-options|
-4. URL Parsing (experimental)             |git-dev-url-parsing-(experimental)|
-  - Supported URLs         |git-dev-url-parsing-(experimental)-supported-urls|
-  - Examples                     |git-dev-url-parsing-(experimental)-examples|
-  - Limitations               |git-dev-url-parsing-(experimental)-limitations|
+4. URL Parsing                                           |git-dev-url-parsing|
+  - Supported URLs                        |git-dev-url-parsing-supported-urls|
+  - Examples                                    |git-dev-url-parsing-examples|
+  - Limitations                              |git-dev-url-parsing-limitations|
 5. Recipes                                                   |git-dev-recipes|
   - Interactive Opening                  |git-dev-recipes-interactive-opening|
   - nvim-tree                                      |git-dev-recipes-nvim-tree|
@@ -100,6 +101,11 @@ By either using the lua function `require("git-dev").clean_all()` or the
 command `GitDevCleanAll`.
 
 
+PARSE                                                    *git-dev-usage-parse*
+
+Parses a Git URL. See |git-dev-url-parsing|.
+
+
 ==============================================================================
 3. Options                                                   *git-dev-options*
 
@@ -158,7 +164,7 @@ command `GitDevCleanAll`.
 
 
 ==============================================================================
-4. URL Parsing (experimental)             *git-dev-url-parsing-(experimental)*
+4. URL Parsing                                           *git-dev-url-parsing*
 
 It is reasonable to assume that browsing arbitrary Git repositories will
 probably begin in a web browser. The main purpose of this feature is to allow
@@ -179,7 +185,7 @@ Notice that passing explicit `ref` to `GitDevOpen` will take precedence on
 parsed fields.
 
 
-SUPPORTED URLS             *git-dev-url-parsing-(experimental)-supported-urls*
+SUPPORTED URLS                            *git-dev-url-parsing-supported-urls*
 
 - GitHub
     - `https://github.com/<repo>`
@@ -211,7 +217,7 @@ SUPPORTED URLS             *git-dev-url-parsing-(experimental)-supported-urls*
 - Codeberg - Same as Gitea.
 
 
-EXAMPLES                         *git-dev-url-parsing-(experimental)-examples*
+EXAMPLES                                        *git-dev-url-parsing-examples*
 
 Open `README.md` in main branch:
 
@@ -253,7 +259,7 @@ See `lua/git-dev/parser_spec.lua` for more examples.
 https://github.com/moyiz/git-dev/blob/master/lua/git-dev/parser_spec.lua`)
 
 
-LIMITATIONS                   *git-dev-url-parsing-(experimental)-limitations*
+LIMITATIONS                                  *git-dev-url-parsing-limitations*
 
 Notice this feature is quite experimental. If you encounter any issues or have
 any questions or requests, feel free to reach out.
