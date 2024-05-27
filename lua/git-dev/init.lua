@@ -219,6 +219,20 @@ M.clean_all = function()
   vim.fn.delete(M.config.repositories_dir)
 end
 
+---Parses a Git URL.
+---@param repo string
+---@return GitRepo
+M.parse = function(repo, opts)
+  local config = vim.tbl_deep_extend("force", M.config, opts or {})
+  local gitcmd = require("git-dev.gitcmd"):init { cmd = config.git.command }
+  local parser = require("git-dev.parser"):init {
+    gitcmd = gitcmd,
+    base_uri_format = config.git.base_uri_format,
+    extra_domain_to_parser = config.extra_domain_to_parser,
+  }
+  return parser:parse(repo)
+end
+
 ---Module Setup
 ---@param opts? table Module config table. See |M.config|.
 M.setup = function(opts)

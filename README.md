@@ -36,8 +36,9 @@ shallow clones automatically. It aims to provide a similar experience to
     - [Parameters](#parameters)
     - [Examples](#examples)
   - [:broom: Clean All](#broom-clean-all)
+  - [:eyeglasses: Parse](#eyeglasses-parse)
 - [:gear: Options](#gear-options)
-- [:spider_web: URL Parsing (experimental)](#spider_web-url-parsing-experimental)
+- [:spider_web: URL Parsing](#spider_web-url-parsing)
   - [Supported URLs](#supported-urls)
   - [Examples](#examples)
   - [Limitations](#limitations)
@@ -132,6 +133,10 @@ purpose.
 By either using the lua function `require("git-dev").clean_all()` or the command
 `GitDevCleanAll`.
 
+### :eyeglasses: Parse
+Parses a Git URL.
+See [URL Parsing](#spider_web-url-parsing).
+
 
 ## :gear: Options
 ```lua
@@ -187,7 +192,7 @@ M.config = {
 }
 ```
 
-## :spider_web: URL Parsing (experimental)
+## :spider_web: URL Parsing
 It is reasonable to assume that browsing arbitrary Git repositories will 
 probably begin in a web browser. The main purpose of this feature is to allow 
 quicker transition from the currently viewed branch / tag / commit / file to 
