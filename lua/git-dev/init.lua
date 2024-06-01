@@ -193,11 +193,11 @@ M.open = function(repo, ref, opts)
     })
   end
 
-  -- CD into repository directory
-  cd_func[config.cd_type](vim.fn.fnameescape(repo_dir), not config.verbose)
-
   -- Open directory (or selected path)
   config.opener(repo_dir, parsed_repo.repo_url, parsed_repo.selected_path)
+
+  -- CD into repository directory
+  cd_func[config.cd_type](vim.fn.fnameescape(repo_dir), not config.verbose)
 
   if config.read_only then
     -- Set all buffers in the repository directory as read-only
