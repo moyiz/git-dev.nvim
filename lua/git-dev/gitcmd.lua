@@ -1,73 +1,130 @@
+local uv = vim.uv
+
 local GitCmd = {}
 
 ---@class GitCmd
 ---@field cmd? string : Path to `git` command. Default: "git".
+---@on_output func? : Invoked on each line of output
 
 ---@param o GitCmd
 function GitCmd:init(o)
-  o = vim.tbl_deep_extend("force", { cmd = "git" }, o or {})
+  o = vim.tbl_deep_extend(
+    "force",
+    { cmd = "git", on_output = function() end },
+    o or {}
+  )
   setmetatable(o, self)
   self.__index = self
   return o
 end
 
+---Spawns a command and returns its handle and std{out,err} pipes.
+---@param cmd string
+function GitCmd:_spawn(cmd, callback)
+  local stdout = uv.new_pipe()
+  local stderr = uv.new_pipe()
+
+  local handle
+  handle = uv.spawn(
+    "sh",
+    { args = { "-c", cmd }, stdio = { nil, stdout, stderr } },
+    function(code)
+      if callback then
+        callback(code)
+      end
+      if handle then
+        handle:close()
+      end
+      stdout:read_stop()
+      stdout:close()
+      stderr:read_stop()
+      stderr:close()
+    end
+  )
+
+  uv.read_start(stdout, self.on_output)
+  uv.read_start(stderr, self.on_output)
+
+  return { handle = handle, stdout = stdout, stderr = stderr }
+end
+
+---@class CloneOpts
+---@field repo_url string : Remote git repository URL.
+---@field repo_dir string : Local path to git repository.
+---@field branch? string : Optional branch to set.
+---@field extra_args? string
+
 ---Clones a git reporitory.
----@param repo_url string : Remote git repository URL.
----@param repo_dir string : Local path to git repository.
----@param branch? string : Optional branch to set.
----@param extra_args? string
-function GitCmd:clone(repo_url, repo_dir, branch, extra_args)
-  return vim.fn.systemlist(
+---@param opts CloneOpts
+---@param callback? function
+function GitCmd:clone(opts, callback)
+  return self:_spawn(
     self.cmd
       .. " clone "
-      .. (extra_args or "")
+      .. (opts.extra_args or "")
       .. " "
-      .. (branch and " -b " .. branch or "")
+      .. (opts.branch and " -b " .. opts.branch or "")
       .. " "
-      .. repo_url
+      .. opts.repo_url
       .. " "
-      .. repo_dir
+      .. opts.repo_dir,
+    callback
   )
 end
+
+---@class CheckoutOpts
+---@field repo_dir string
+---@field ref string
+---@field extra_args? string
 
 ---Checks out a branch, tag or commit.
----@param repo_dir string
----@param ref string
----@param extra_args? string
-function GitCmd:checkout(repo_dir, ref, extra_args)
-  return vim.fn.systemlist(
+---@param opts CheckoutOpts
+---@param callback? function
+function GitCmd:checkout(opts, callback)
+  return self:_spawn(
     self.cmd
       .. " -C "
-      .. repo_dir
+      .. opts.repo_dir
       .. " checkout "
-      .. (extra_args or "")
+      .. (opts.extra_args or "")
       .. " "
-      .. ref
+      .. opts.ref,
+    callback
   )
 end
+
+---@class RefreshOpts
+---@field repo_dir string : Local path to git repository.
+---@field extra_args? string
 
 ---Refreshes local objects and refs from remote.
----@param repo_dir string : Local path to git repository.
----@param extra_args? string
-function GitCmd:refresh(repo_dir, extra_args)
-  return vim.fn.systemlist(
-    self.cmd .. " -C " .. repo_dir .. " fetch " .. (extra_args or "")
+---@param opts RefreshOpts
+---@param callback? function
+function GitCmd:refresh(opts, callback)
+  return self:_spawn(
+    self.cmd .. " -C " .. opts.repo_dir .. " fetch " .. (opts.extra_args or ""),
+    callback
   )
 end
 
+---@class ResetOpts
+---@field repo_dir string : Local path to git repository.
+---@field ref? string
+---@field extra_args? string
+
 ---Hard resets a local repository to given reference.
----@param repo_dir string : Local path to git repository.
----@param ref? string
----@param extra_args? string
-function GitCmd:reset(repo_dir, ref, extra_args)
-  return vim.fn.systemlist(
+---@param opts ResetOpts
+---@param callback? function
+function GitCmd:reset(opts, callback)
+  return self:_spawn(
     self.cmd
       .. " -C "
-      .. repo_dir
+      .. opts.repo_dir
       .. " reset --hard "
-      .. (extra_args or "")
+      .. (opts.extra_args or "")
       .. " "
-      .. (ref or "")
+      .. (opts.ref or ""),
+    callback
   )
 end
 
@@ -76,10 +133,11 @@ end
 ---@field ref string
 
 ---Lists all references in a repository by optional pattern.
+---Synchronous.
 ---@param repo_url string : Remote git repository URL.
 ---@param pattern? string : An optional pattern to filter by.
 ---@return RemoteRef[]
-function GitCmd:list_refs(repo_url, pattern)
+function GitCmd:list_refs_sync(repo_url, pattern)
   return vim.tbl_map(
     function(raw_ref)
       local ref = vim.fn.split(raw_ref, "\t")
