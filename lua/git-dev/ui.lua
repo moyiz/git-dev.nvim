@@ -10,6 +10,7 @@ local function _create_buffer()
   _set_option("bufhidden", "wipe")
   _set_option("readonly", true)
   _set_option("modifiable", false)
+  _set_option("signcolumn", "no")
   return buf
 end
 
