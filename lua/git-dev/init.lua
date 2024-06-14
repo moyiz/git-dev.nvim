@@ -15,7 +15,7 @@ M.config = {
   ---@param repo_uri string The URI that was used to clone this repository.
   ---@param selected_path? string A relative path to a file in this repository.
   opener = function(dir, repo_uri, selected_path)
-    vim.print("Opening " .. repo_uri)
+    M.ui:print("Opening " .. repo_uri)
     local dest =
       vim.fn.fnameescape(selected_path and dir .. "/" .. selected_path or dir)
     vim.cmd("edit " .. dest)
@@ -38,7 +38,7 @@ M.config = {
     -- Triggered when repository does not exist locally.
     -- It will clone submodules too, disable it if it is too slow.
     clone_args = "--jobs=2 --single-branch --recurse-submodules "
-      .. "--shallow-submodules",
+      .. "--shallow-submodules --progress",
     -- Arguments for `git fetch`.
     -- Triggered when repository is already exists locally to refresh the local
     -- copy.
@@ -46,6 +46,26 @@ M.config = {
     -- Arguments for `git checkout`.
     -- Triggered when a branch, tag or commit is given.
     checkout_args = "-f --recurse-submodules",
+  },
+  -- UI configuration
+  ui = {
+    -- Auto-close window after repository was opened.
+    auto_close = true,
+    -- Delay window closing.
+    close_after_ms = 3000,
+    -- Window configuration. See `:h nvim_open_win`.
+    open_win_config = {
+      title = "git-dev",
+      title_pos = "center",
+      anchor = "NE",
+      style = "minimal",
+      border = "rounded",
+      relative = "editor",
+      width = 79,
+      height = 9,
+      row = 1,
+      col = vim.o.columns,
+    },
   },
   -- Print command outputs.
   verbose = false,
@@ -122,14 +142,27 @@ M.open = function(repo, ref, opts)
   ref = ref or {}
 
   local config = vim.tbl_deep_extend("force", M.config, opts or {})
+  local ui = M.ui
+  ui:show()
 
-  local gitcmd = require("git-dev.gitcmd"):init { cmd = config.git.command }
+  local gitcmd = require("git-dev.gitcmd"):init {
+    cmd = config.git.command,
+    on_output = function(err, data)
+      if data and config.verbose then
+        ui:print(data)
+      end
+      if err then
+        ui:print("ERROR: " .. err)
+      end
+    end,
+  }
   local parser = require("git-dev.parser"):init {
     gitcmd = gitcmd,
     base_uri_format = config.git.base_uri_format,
     extra_domain_to_parser = config.extra_domain_to_parser,
   }
 
+  ui:print("Parsing: " .. repo)
   local parsed_repo = parser:parse(repo)
   local branch = ref.commit
     or ref.tag
@@ -138,7 +171,7 @@ M.open = function(repo, ref, opts)
     or parsed_repo.branch
 
   if not branch and parsed_repo.full_blob then
-    vim.notify "Could not detect branch / tag / commit in given URI."
+    ui:print "Could not detect branch / tag / commit in given URI."
   end
 
   local repo_dir = config.repositories_dir
@@ -146,69 +179,73 @@ M.open = function(repo, ref, opts)
     .. git_uri_to_dir_name(parsed_repo.repo_url, branch)
 
   if config.verbose then
-    vim.print("Input:", repo, "Parsed:", parsed_repo, "Ref:", branch)
+    ui:print(parsed_repo)
   end
 
-  local verbose = {}
-  if vim.fn.isdirectory(repo_dir) == 1 then
-    table.insert(verbose, gitcmd:refresh(repo_dir, config.git.fetch_args))
-  else
-    -- Fresh clone
-    table.insert(
-      verbose,
-      gitcmd:clone(
-        parsed_repo.repo_url,
-        repo_dir,
-        parsed_repo.branch,
-        config.git.clone_args
-      )
-    )
+  local post_action_callback = vim.schedule_wrap(function()
     if vim.fn.isdirectory(repo_dir) == 0 then
-      if config.verbose then
-        vim.notify(vim.fn.join(verbose, "\n"))
-      end
-      vim.notify(
+      ui:print(
         "Repository not found at: " .. parsed_repo.repo_url .. ", aborting..."
       )
       return false
     end
-  end
+    if branch then
+      ui:print "Making sure that the correct branch / tag is checked out..."
+      gitcmd:checkout {
+        repo_dir = repo_dir,
+        branch = branch,
+        extra_args = config.git.checkout_args,
+      }
+    end
 
-  if branch then
-    table.insert(
-      verbose,
-      gitcmd:checkout(repo_dir, branch, config.git.checkout_args)
+    if config.ephemeral then
+      ui:print "Ephemeral mode: creating autocmd to cleanup when nvim exits..."
+      -- Delete repository directory when vim exits.
+      vim.api.nvim_create_autocmd({ "VimLeavePre" }, {
+        group = augroup,
+        callback = clean_repo_callback(repo_dir),
+      })
+    end
+
+    -- CD into repository directory
+    cd_func[config.cd_type](vim.fn.fnameescape(repo_dir), not config.verbose)
+
+    -- Open directory (or selected path)
+    config.opener(repo_dir, parsed_repo.repo_url, parsed_repo.selected_path)
+
+    if config.read_only then
+      -- Set all buffers in the repository directory as read-only
+      -- and unmodifiable.
+      ui:print "Setting read only mode..."
+      vim.api.nvim_create_autocmd({ "BufReadPost" }, {
+        group = augroup,
+        pattern = repo_dir .. "*",
+        callback = function()
+          vim.cmd "setlocal readonly nomodifiable"
+        end,
+      })
+    end
+    ui:print "Done."
+    if config.ui.auto_close then
+      ui:close(config.ui.close_after_ms)
+    end
+  end)
+
+  if vim.fn.isdirectory(repo_dir) == 1 then
+    ui:print "Repository directory exists, refreashing..."
+    gitcmd:refresh(
+      { repo_dir = repo_dir, extra_args = config.git.fetch_args },
+      post_action_callback
     )
-  end
-
-  if config.verbose then
-    vim.notify(vim.fn.join(verbose, "\n"))
-  end
-
-  if config.ephemeral then
-    -- Delete repository directory when vim exits.
-    vim.api.nvim_create_autocmd({ "VimLeavePre" }, {
-      group = augroup,
-      callback = clean_repo_callback(repo_dir),
-    })
-  end
-
-  -- CD into repository directory
-  cd_func[config.cd_type](vim.fn.fnameescape(repo_dir), not config.verbose)
-
-  -- Open directory (or selected path)
-  config.opener(repo_dir, parsed_repo.repo_url, parsed_repo.selected_path)
-
-  if config.read_only then
-    -- Set all buffers in the repository directory as read-only
-    -- and unmodifiable.
-    vim.api.nvim_create_autocmd({ "BufReadPost" }, {
-      group = augroup,
-      pattern = repo_dir .. "*",
-      callback = function()
-        vim.cmd "setlocal readonly nomodifiable"
-      end,
-    })
+  else
+    -- Fresh clone
+    ui:print "Repository does not exist locally, cloning..."
+    gitcmd:clone({
+      repo_url = parsed_repo.repo_url,
+      repo_dir = repo_dir,
+      branch = parsed_repo.branch,
+      extra_args = config.git.clone_args,
+    }, post_action_callback)
   end
 end
 
@@ -233,6 +270,11 @@ M.parse = function(repo, opts)
   return parser:parse(repo)
 end
 
+---Toggle UI Window
+M.toggle_ui = function()
+  M.ui:toggle()
+end
+
 ---Module Setup
 ---@param opts? table Module config table. See |M.config|.
 M.setup = function(opts)
@@ -240,6 +282,9 @@ M.setup = function(opts)
 
   -- Create repositories directory if not exists.
   vim.fn.mkdir(M.config.repositories_dir, "p")
+
+  -- Prepare UI
+  M.ui = require("git-dev.ui"):init { win_config = M.config.ui.open_win_config }
 
   -- Create commands
   vim.api.nvim_create_user_command("GitDevOpen", function(cmd_args)
@@ -261,6 +306,12 @@ M.setup = function(opts)
   end, {
     desc = "Deletes the repositories directory. CAUTION: be careful "
       .. "with custom paths.",
+  })
+
+  vim.api.nvim_create_user_command("GitDevToggleUI", function(_)
+    require("git-dev").toggle_ui()
+  end, {
+    desc = "Toggle the window showing git-dev output.",
   })
 end
 
