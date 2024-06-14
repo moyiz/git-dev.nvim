@@ -283,8 +283,9 @@ M.parse = function(repo, opts)
 end
 
 ---Toggle UI Window
-M.toggle_ui = function()
-  M.ui:toggle()
+---@param win_config? vim.api.keyset.win_config
+M.toggle_ui = function(win_config)
+  M.ui:toggle(win_config)
 end
 
 ---Module Setup
