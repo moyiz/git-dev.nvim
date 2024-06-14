@@ -1,4 +1,4 @@
-*git-dev.txt*             For NVIM v0.8.0             Last change: 2024 May 27
+*git-dev.txt*             For NVIM v0.8.0            Last change: 2024 June 14
 
 ==============================================================================
 Table of Contents                                  *git-dev-table-of-contents*
@@ -8,6 +8,7 @@ Table of Contents                                  *git-dev-table-of-contents*
   - Open                                                  |git-dev-usage-open|
   - Clean All                                        |git-dev-usage-clean-all|
   - Parse                                                |git-dev-usage-parse|
+  - Toggle UI                                        |git-dev-usage-toggle-ui|
 3. Options                                                   |git-dev-options|
 4. URL Parsing                                           |git-dev-url-parsing|
   - Supported URLs                        |git-dev-url-parsing-supported-urls|
@@ -20,7 +21,7 @@ Table of Contents                                  *git-dev-table-of-contents*
   - New tab                                          |git-dev-recipes-new-tab|
   - Web browser                                  |git-dev-recipes-web-browser|
   - Customizing Default URL          |git-dev-recipes-customizing-default-url|
-  - Private Git Instance                |git-dev-recipes-private-git-instance|
+  - Private Repositories - Parse HTTP as SSH|git-dev-recipes-private-repositories---parse-http-as-ssh|
   - Telescope                                      |git-dev-recipes-telescope|
 =============================================================================
 
@@ -91,6 +92,10 @@ EXAMPLES ~
 
 CLEAN ALL                                            *git-dev-usage-clean-all*
 
+API: `require("git-dev").clean_all()`
+
+Command: `GitDevCleanAll`
+
 Clean all cached local repositories.
 
 **Caution**It will delete the repositories directory itself. If you changed the
@@ -103,7 +108,34 @@ command `GitDevCleanAll`.
 
 PARSE                                                    *git-dev-usage-parse*
 
-Parses a Git URL. See |git-dev-url-parsing|.
+API: `require("git-dev").parse(repo, opts)`
+
+Parses a Git URL.
+
+
+PARAMETERS ~
+
+- `repo` - `string` - A partial or full Git URI.
+- `opts` - `table` - Override plugin configuration for this call (default:
+    `nil`). See |git-dev-options| below.
+
+See |git-dev-url-parsing|.
+
+
+TOGGLE UI                                            *git-dev-usage-toggle-ui*
+
+API: `require("git-dev").toggle_ui(win_config)`
+
+Command: `GitDevToggleUI`
+
+Manually toggle the window showing `git-dev` output. Accepts optional table to
+override default window configuration.
+
+
+PARAMETERS ~
+
+- `win_config` - `vim.api.keyset.win_config` - Override window configuration
+    for this call.
 
 
 ==============================================================================
@@ -125,7 +157,7 @@ Parses a Git URL. See |git-dev-url-parsing|.
       ---@param repo_uri string The URI that was used to clone this repository.
       ---@param selected_path? string A relative path to a file in this repository.
       opener = function(dir, repo_uri, selected_path)
-        vim.print("Opening " .. repo_uri)
+        M.ui:print("Opening " .. repo_uri)
         local dest =
           vim.fn.fnameescape(selected_path and dir .. "/" .. selected_path or dir)
         vim.cmd("edit " .. dest)
@@ -148,7 +180,7 @@ Parses a Git URL. See |git-dev-url-parsing|.
         -- Triggered when repository does not exist locally.
         -- It will clone submodules too, disable it if it is too slow.
         clone_args = "--jobs=2 --single-branch --recurse-submodules "
-          .. "--shallow-submodules",
+          .. "--shallow-submodules --progress",
         -- Arguments for `git fetch`.
         -- Triggered when repository is already exists locally to refresh the local
         -- copy.
@@ -156,6 +188,38 @@ Parses a Git URL. See |git-dev-url-parsing|.
         -- Arguments for `git checkout`.
         -- Triggered when a branch, tag or commit is given.
         checkout_args = "-f --recurse-submodules",
+      },
+      -- UI configuration
+      ui = {
+        -- Auto-close window after repository was opened.
+        auto_close = true,
+        -- Delay window closing.
+        close_after_ms = 3000,
+        -- Window mode. A workaround to remove `relative`.
+        -- Options: floating|split
+        mode = "floating",
+        -- Window configuration for floating mode.
+        -- See `:h nvim_open_win`.
+        ---@type win_config
+        floating_win_config = {
+          title = "git-dev",
+          title_pos = "center",
+          anchor = "NE",
+          style = "minimal",
+          border = "rounded",
+          relative = "editor",
+          width = 79,
+          height = 9,
+          row = 1,
+          col = vim.o.columns,
+        },
+        -- Window configuration for split mode.
+        -- See `:h nvim_open_win`.
+        ---@type win_config
+        split_win_config = {
+          split = "right",
+          width = 79,
+        },
       },
       -- Print command outputs.
       verbose = false,
@@ -393,7 +457,7 @@ default organization name if the given repository name does not contain `/`.
 <
 
 
-PRIVATE GIT INSTANCE                    *git-dev-recipes-private-git-instance*
+PRIVATE REPOSITORIES - PARSE HTTP AS SSH*git-dev-recipes-private-repositories---parse-http-as-ssh*
 
 All repositories in my home Gitea service are private. Cloning such
 repositories using HTTP URLs will require inserting user and password. Since my
