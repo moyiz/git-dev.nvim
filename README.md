@@ -37,6 +37,9 @@ shallow clones automatically. It aims to provide a similar experience to
     - [Examples](#examples)
   - [:broom: Clean All](#broom-clean-all)
   - [:eyeglasses: Parse](#eyeglasses-parse)
+    - [Parameters](#parameters)
+  - [:goggles: Toggle UI](#goggles-toggle-ui)
+    - [Parameters](#parameters)
 - [:gear: Options](#gear-options)
 - [:spider_web: URL Parsing](#spider_web-url-parsing)
   - [Supported URLs](#supported-urls)
@@ -49,7 +52,7 @@ shallow clones automatically. It aims to provide a similar experience to
   - [:bookmark_tabs: New tab](#bookmark_tabs-new-tab)
   - [:fox_face: Web browser](#fox_face-web-browser)
   - [:pencil: Customizing Default URL](#pencil-customizing-default-url)
-  - [:house_with_garden: Private Git Instance](#house_with_garden-private-git-instance)
+  - [:house_with_garden: Private Repositories - Parse HTTP as SSH](#house_with_garden-private-repositories---parse-http-as-ssh)
   - [:telescope: Telescope](#telescope-telescope)
 - [:crystal_ball: Future Plans / Thoughts](#crystal_ball-future-plans--thoughts)
 - [:scroll: License](#scroll-license)
@@ -124,6 +127,10 @@ require("git-dev").open("https://git.savannah.gnu.org/git/bash.git", {}, { read_
 ```
 
 ### :broom: Clean All
+API: `require("git-dev").clean_all()`
+
+Command: `GitDevCleanAll`
+
 Clean all cached local repositories.
 
 **Caution**: It will delete the repositories directory itself. If you changed
@@ -134,9 +141,28 @@ By either using the lua function `require("git-dev").clean_all()` or the command
 `GitDevCleanAll`.
 
 ### :eyeglasses: Parse
+API: `require("git-dev").parse(repo, opts)`
+
 Parses a Git URL.
+
+#### Parameters
+- `repo` - `string` - A partial or full Git URI.
+- `opts` - `table` - Override plugin configuration for this call (default:
+`nil`). See [Options](#gear-options) below. 
+
 See [URL Parsing](#spider_web-url-parsing).
 
+### :goggles: Toggle UI
+API: `require("git-dev").toggle_ui(win_config)`
+
+Command: `GitDevToggleUI`
+
+Manually toggle the window showing `git-dev` output. Accepts optional table to
+override default window configuration.
+
+#### Parameters
+- `win_config` - `vim.api.keyset.win_config` - Override window configuration
+for this call.
 
 ## :gear: Options
 ```lua
@@ -155,7 +181,7 @@ M.config = {
   ---@param repo_uri string The URI that was used to clone this repository.
   ---@param selected_path? string A relative path to a file in this repository.
   opener = function(dir, repo_uri, selected_path)
-    vim.print("Opening " .. repo_uri)
+    M.ui:print("Opening " .. repo_uri)
     local dest =
       vim.fn.fnameescape(selected_path and dir .. "/" .. selected_path or dir)
     vim.cmd("edit " .. dest)
@@ -178,7 +204,7 @@ M.config = {
     -- Triggered when repository does not exist locally.
     -- It will clone submodules too, disable it if it is too slow.
     clone_args = "--jobs=2 --single-branch --recurse-submodules "
-      .. "--shallow-submodules",
+      .. "--shallow-submodules --progress",
     -- Arguments for `git fetch`.
     -- Triggered when repository is already exists locally to refresh the local
     -- copy.
@@ -186,6 +212,38 @@ M.config = {
     -- Arguments for `git checkout`.
     -- Triggered when a branch, tag or commit is given.
     checkout_args = "-f --recurse-submodules",
+  },
+  -- UI configuration
+  ui = {
+    -- Auto-close window after repository was opened.
+    auto_close = true,
+    -- Delay window closing.
+    close_after_ms = 3000,
+    -- Window mode. A workaround to remove `relative`.
+    -- Options: floating|split
+    mode = "floating",
+    -- Window configuration for floating mode.
+    -- See `:h nvim_open_win`.
+    ---@type win_config
+    floating_win_config = {
+      title = "git-dev",
+      title_pos = "center",
+      anchor = "NE",
+      style = "minimal",
+      border = "rounded",
+      relative = "editor",
+      width = 79,
+      height = 9,
+      row = 1,
+      col = vim.o.columns,
+    },
+    -- Window configuration for split mode.
+    -- See `:h nvim_open_win`.
+    ---@type win_config
+    split_win_config = {
+      split = "right",
+      width = 79,
+    },
   },
   -- Print command outputs.
   verbose = false,
@@ -391,7 +449,7 @@ opts = {
 }
 ```
 
-### :house_with_garden: Private Git Instance
+### :house_with_garden: Private Repositories - Parse HTTP as SSH
 All repositories in my home Gitea service are private. Cloning such repositories
 using HTTP URLs will require inserting user and password. Since my SSH keys are
 already set, a custom parser can workaround it by leveraging the `domain`
@@ -436,7 +494,6 @@ TBD
 - Telescope extension to view, open and manage cloned repositories (will
 require `ephemeral = false`).
 - Open repository in visual selection / current "word".
-- Asynchronous command invocation.
 
 ## :scroll: License
 See [License](./LICENSE).
