@@ -99,11 +99,12 @@ function UI:close(delay)
 end
 
 ---Toggles UI window.
-function UI:toggle()
+---@param win_config? win_config
+function UI:toggle(win_config)
   if self.window ~= nil then
     self:close()
   else
-    self:show()
+    self:show(win_config)
   end
 end
 
