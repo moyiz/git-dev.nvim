@@ -53,8 +53,13 @@ M.config = {
     auto_close = true,
     -- Delay window closing.
     close_after_ms = 3000,
-    -- Window configuration. See `:h nvim_open_win`.
-    open_win_config = {
+    -- Window mode. A workaround to remove `relative`.
+    -- Options: floating|split
+    mode = "floating",
+    -- Window configuration for floating mode.
+    -- See `:h nvim_open_win`.
+    ---@type win_config
+    floating_win_config = {
       title = "git-dev",
       title_pos = "center",
       anchor = "NE",
@@ -65,6 +70,13 @@ M.config = {
       height = 9,
       row = 1,
       col = vim.o.columns,
+    },
+    -- Window configuration for split mode.
+    -- See `:h nvim_open_win`.
+    ---@type win_config
+    split_win_config = {
+      split = "right",
+      width = 79,
     },
   },
   -- Print command outputs.
@@ -284,7 +296,12 @@ M.setup = function(opts)
   vim.fn.mkdir(M.config.repositories_dir, "p")
 
   -- Prepare UI
-  M.ui = require("git-dev.ui"):init { win_config = M.config.ui.open_win_config }
+  local win_config = M.config.ui.mode == "floating"
+      and M.config.ui.floating_win_config
+    or M.config.ui.split_win_config
+  M.ui = require("git-dev.ui"):init {
+    win_config = win_config,
+  }
 
   -- Create commands
   vim.api.nvim_create_user_command("GitDevOpen", function(cmd_args)
