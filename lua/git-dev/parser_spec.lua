@@ -353,7 +353,7 @@ T.run = function()
     for i, case in ipairs(cases) do
       local parser = Parser:init {
         gitcmd = {
-          list_refs = function(_)
+          list_refs_sync = function(_)
             return case.remote_refs or {}
           end,
         },

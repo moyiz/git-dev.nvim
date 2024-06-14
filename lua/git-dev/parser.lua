@@ -76,7 +76,7 @@ function Parser:parse_full_blob(text, repo_url)
   -- The first part must be part of the branch / tag name.
   local refs = vim.tbl_map(function(ref)
     return ref.ref
-  end, self.gitcmd:list_refs(repo_url, parts[1] .. "*") or {})
+  end, self.gitcmd:list_refs_sync(repo_url, parts[1] .. "*") or {})
 
   -- Since refs will be scanned by `find`, it is simpler to just concatenate
   -- them instead of iterating.
