@@ -25,20 +25,6 @@ Table of Contents                                  *git-dev-table-of-contents*
   - Telescope                                      |git-dev-recipes-telescope|
 =============================================================================
 
->
-                   / /           |                         /
-              ___   (___ ___  ___| ___           ___         _ _
-             |   )| |        |   )|___) \  )    |   ) \  )| | | )
-             |__/ | |__      |__/ |__    \/     |  /   \/ | |  /
-             __/                            -
-<
-
-Open remote git repositories in the comfort of Neovim.
-
-A plugin to open remote Git repositories inside Neovim by managing ephemeral
-shallow clones automatically. It aims to provide a similar experience to
-`GitHub.dev` but directly within Neovim.
-
 
 ==============================================================================
 1. Features                                                 *git-dev-features*
