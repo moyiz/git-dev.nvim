@@ -53,7 +53,7 @@ M.config = {
     auto_close = true,
     -- Delay window closing.
     close_after_ms = 3000,
-    -- Window mode. A workaround to remove `relative`.
+    -- Window mode.
     -- Options: floating|split
     mode = "floating",
     -- Window configuration for floating mode.
@@ -70,6 +70,7 @@ M.config = {
       height = 9,
       row = 1,
       col = vim.o.columns,
+      noautocmd = true,
     },
     -- Window configuration for split mode.
     -- See `:h nvim_open_win`.
@@ -77,6 +78,7 @@ M.config = {
     split_win_config = {
       split = "right",
       width = 79,
+      noautocmd = true,
     },
   },
   -- Print command outputs.
@@ -228,7 +230,7 @@ M.open = function(repo, ref, opts)
     if config.read_only then
       -- Set all buffers in the repository directory as read-only
       -- and unmodifiable.
-      ui:print "Setting read only mode..."
+      ui:print("Setting read only mode for " .. repo_dir)
       vim.api.nvim_create_autocmd({ "BufReadPost" }, {
         group = augroup,
         pattern = repo_dir .. "*",
@@ -297,9 +299,23 @@ M.setup = function(opts)
   vim.fn.mkdir(M.config.repositories_dir, "p")
 
   -- Prepare UI
-  local win_config = M.config.ui.mode == "floating"
-      and M.config.ui.floating_win_config
-    or M.config.ui.split_win_config
+  local win_config
+  if M.config.ui.mode == "split" then
+    local v = vim.version()
+    -- `nvim_open_win` supports splitting in Neovim>=0.10.0
+    -- `ge` was added in 0.10.0.
+    if vim.version.lt({ v.major, v.minor, v.patch }, { 0, 10, 0 }) == false then
+      win_config = M.config.ui.split_win_config
+    else
+      vim.notify(
+        "Split mode is not supported in Neovim < 0.10.0. "
+          .. "Falling back to floating mode."
+      )
+      win_config = M.config.ui.floating_win_config
+    end
+  else
+    win_config = M.config.ui.floating_win_config
+  end
   M.ui = require("git-dev.ui"):init {
     win_config = win_config,
   }
