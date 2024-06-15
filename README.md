@@ -1,3 +1,7 @@
+<!-- panvimdoc-ignore-start -->
+![GitHub License](https://img.shields.io/github/license/moyiz/git-dev.nvim)
+![GitHub Tag](https://img.shields.io/github/v/tag/moyiz/git-dev.nvim)
+<!-- panvimdoc-ignore-end -->
 
 <!-- panvimdoc-include-comment
 
