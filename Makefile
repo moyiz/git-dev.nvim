@@ -58,6 +58,6 @@ panvimdoc-build:
 
 .PHONY: test
 test:
-	nvim --headless --clean -c 'set runtimepath+=.' -c 'lua require("git-dev.parser_spec").run()' -c qa
+	nvim --headless --clean -c 'set runtimepath+=.' -c 'luafile tests/runner.lua' -c qa
 
 # vim: ft=make ts=4 noexpandtab
