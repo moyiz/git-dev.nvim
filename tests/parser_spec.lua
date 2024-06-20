@@ -1,5 +1,6 @@
 local T = {}
 T.run = function()
+  local t = dofile("./tests/lib.lua").Session:init {}
   local Parser = require "git-dev.parser"
 
   local test_cases = {
@@ -349,7 +350,6 @@ T.run = function()
   }
 
   local function test_parsers(cases)
-    local failed = 0
     for i, case in ipairs(cases) do
       local parser = Parser:init {
         gitcmd = {
@@ -362,25 +362,20 @@ T.run = function()
       }
       local output = parser:parse(case.url)
       local passed = vim.deep_equal(output, case.expected)
-      print(
-        i .. ":",
-        passed and "[PASSED]" or "[FAILED]",
-        "- " .. case.url .. "\n"
-      )
+      t:assert(passed, case.url, i)
       if not passed then
         print "Expected:"
         vim.print(case.expected)
         print "Output:"
         vim.print(output)
-        failed = failed + 1
       end
     end
     vim.print(
-      string.format("%d/%d tests have passed!\n", #cases - failed, #cases)
+      string.format("%d/%d tests have passed!\n", #cases - t.failed, #cases)
     )
-    require("os").exit(failed == 0)
+    return t.failed == 0
   end
 
-  test_parsers(test_cases)
+  return test_parsers(test_cases)
 end
 return T

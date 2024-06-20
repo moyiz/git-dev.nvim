@@ -54,6 +54,7 @@ end
 ---@field full_blob? string
 ---@field commit? string
 ---@field branch? string
+---@field selected_path? string
 ---@field type "http"|"local"|"bundle"|"raw"|"custom"
 
 -- Since branch / tag might include slashes, it is impossible to determine how
