@@ -44,6 +44,8 @@ shallow clones automatically. It aims to provide a similar experience to
     - [Parameters](#parameters)
   - [:goggles: Toggle UI](#goggles-toggle-ui)
     - [Parameters](#parameters)
+  - [:telescope: Telescope](#telescope-telescope)
+    - [:bone: Recent Repositories](#bone-recent-repositories)
 - [:gear: Options](#gear-options)
 - [:spider_web: URL Parsing](#spider_web-url-parsing)
   - [Supported URLs](#supported-urls)
@@ -57,7 +59,6 @@ shallow clones automatically. It aims to provide a similar experience to
   - [:fox_face: Web browser](#fox_face-web-browser)
   - [:pencil: Customizing Default URL](#pencil-customizing-default-url)
   - [:house_with_garden: Private Repositories - Parse HTTP as SSH](#house_with_garden-private-repositories---parse-http-as-ssh)
-  - [:telescope: Telescope](#telescope-telescope)
 - [:crystal_ball: Future Plans / Thoughts](#crystal_ball-future-plans--thoughts)
 - [:scroll: License](#scroll-license)
 
@@ -68,6 +69,7 @@ shallow clones automatically. It aims to provide a similar experience to
 - Supports most URLs from GitHub, GitLab, Gitea and Codeberg.
 - Seamless integration with your workflow (e.g. LSP and tree-sitter).
 - Ephemeral repositories - cleanup when Neovim exits.
+- Telescope extension to revisit previously opened repositories.
 
 <!-- panvimdoc-ignore-start -->
 
@@ -89,7 +91,7 @@ Lazier (documentation will not be available until first use):
 {
   "moyiz/git-dev.nvim",
   lazy = true,
-  cmd = { "GitDevOpen", "GitDevCleanAll" },
+  cmd = { "GitDevOpen", "GitDevToggleUI", "GitDevRecents", "GitDevCleanAll" },
   opts = {},
 }
 ```
@@ -107,7 +109,8 @@ Command: `GitDevOpen`
 Open the repository in Neovim.
 
 #### Parameters
-- `repo` - `string` - A partial or full Git URI.
+- `repo` - `string` - A partial or full Git URI. Some non-git URIs are also
+supported, see [Supported URLS](#supported-urls) for examples.
 - `ref` - `table` - Target reference to checkout (default: `nil`). Empty `ref`
 will checkout the default branch.
 Examples: `{ branch = "..." }|{ tag = "..." }|{ commit = "..." }`.
@@ -168,6 +171,20 @@ override default window configuration.
 - `win_config` - `vim.api.keyset.win_config` - Override window configuration
 for this call.
 
+
+### :telescope: Telescope
+
+#### :bone: Recent Repositories
+Command: `GitDevRecents`
+
+Revisit previously opened repositories via a telescope extension.
+
+Opened repositories are tracked in a simple single file KV store. Its only
+purpose (currently) is to be queried by the telescope extension for a
+convenient way to re-open previously opened repositories.
+See `history` in [Options](#gear-options) below.
+
+
 ## :gear: Options
 ```lua
 M.config = {
@@ -217,13 +234,13 @@ M.config = {
     -- Triggered when a branch, tag or commit is given.
     checkout_args = "-f --recurse-submodules",
   },
-  -- UI configuration
+  -- UI configuration.
   ui = {
     -- Auto-close window after repository was opened.
     auto_close = true,
     -- Delay window closing.
     close_after_ms = 3000,
-    -- Window mode. A workaround to remove `relative`.
+    -- Window mode.
     -- Options: floating|split
     mode = "floating",
     -- Window configuration for floating mode.
@@ -240,6 +257,7 @@ M.config = {
       height = 9,
       row = 1,
       col = vim.o.columns,
+      noautocmd = true,
     },
     -- Window configuration for split mode.
     -- See `:h nvim_open_win`.
@@ -247,9 +265,17 @@ M.config = {
     split_win_config = {
       split = "right",
       width = 79,
+      noautocmd = true,
     },
   },
-  -- Print command outputs.
+  -- History configuration.
+  history = {
+    -- Maximum number of records to keep in history.
+    n = 32,
+    -- Store file path.
+    path = vim.fn.stdpath "data" .. "/git-dev/history.json",
+  },
+  -- More verbosity.
   verbose = false,
 }
 ```
@@ -489,14 +515,10 @@ Then, the parser trims the "domain" and proceeds as usual. Output:
 }
 ```
 
-### :telescope: Telescope
-TBD
 
 <!-- panvimdoc-ignore-start -->
 
 ## :crystal_ball: Future Plans / Thoughts
-- Telescope extension to view, open and manage cloned repositories (will
-require `ephemeral = false`).
 - Open repository in visual selection / current "word".
 
 ## :scroll: License

@@ -1,6 +1,6 @@
 local Store = require "git-dev.store"
 
----@class History
+---@class GitDevHistory
 ---@field path string History file path.
 ---@field n? number Maximum number of records to keep in history.
 local History = {}
