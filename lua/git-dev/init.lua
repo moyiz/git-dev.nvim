@@ -127,7 +127,7 @@ end
 -- "https://github.com/example/repo.git" => "github.com__example__repo"
 local function git_uri_to_dir_name(uri, branch)
   local dir_name =
-    uri:gsub("/+$", ""):gsub(".*://", ""):gsub("/", "__"):gsub(".git$", "")
+    uri:gsub("/+$", ""):gsub(".*://", ""):gsub("[/:]", "__"):gsub(".git$", "")
   if branch and branch ~= "" then
     dir_name = dir_name .. "#" .. branch:gsub("/", "__")
   end
