@@ -207,7 +207,7 @@ M.open = function(repo, ref, opts)
       ui:print "Making sure that the correct branch / tag is checked out..."
       gitcmd:checkout {
         repo_dir = repo_dir,
-        branch = branch,
+        ref = branch,
         extra_args = config.git.checkout_args,
       }
     end
