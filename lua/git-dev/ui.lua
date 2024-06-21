@@ -42,7 +42,7 @@ function UI:init(o)
   self.buffer = nil
   self.window = nil
   self.win_config = o.win_config
-  return self
+  return o
 end
 
 ---Ensure that `self.buffer` is a valid buffer handle.
