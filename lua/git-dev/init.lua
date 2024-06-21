@@ -47,7 +47,7 @@ M.config = {
     -- Triggered when a branch, tag or commit is given.
     checkout_args = "-f --recurse-submodules",
   },
-  -- UI configuration
+  -- UI configuration.
   ui = {
     -- Auto-close window after repository was opened.
     auto_close = true,
@@ -81,7 +81,14 @@ M.config = {
       noautocmd = true,
     },
   },
-  -- Print command outputs.
+  -- History configuration.
+  history = {
+    -- Maximum number of records to keep in history.
+    n = 32,
+    -- Store file path.
+    path = vim.fn.stdpath "data" .. "/git-dev/history.json",
+  },
+  -- More verbosity.
   verbose = false,
 }
 
@@ -239,6 +246,10 @@ M.open = function(repo, ref, opts)
         end,
       })
     end
+
+    -- Add this call to history store.
+    M.history:add(repo, ref, opts, parsed_repo)
+
     ui:print "Done."
     if config.ui.auto_close then
       ui:close(config.ui.close_after_ms)
@@ -295,8 +306,9 @@ end
 M.setup = function(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
-  -- Create repositories directory if not exists.
+  -- Create needed directories if non existent.
   vim.fn.mkdir(M.config.repositories_dir, "p")
+  vim.fn.mkdir(vim.fs.dirname(M.config.history.path), "p")
 
   -- Prepare UI
   local win_config
@@ -319,6 +331,10 @@ M.setup = function(opts)
   M.ui = require("git-dev.ui"):init {
     win_config = win_config,
   }
+
+  -- Initialize store
+  ---@type History
+  M.history = require("git-dev.history"):init(M.config.history)
 
   -- Create commands
   vim.api.nvim_create_user_command("GitDevOpen", function(cmd_args)
