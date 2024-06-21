@@ -333,7 +333,7 @@ M.setup = function(opts)
   }
 
   -- Initialize store
-  ---@type History
+  ---@type GitDevHistory
   M.history = require("git-dev.history"):init(M.config.history)
 
   -- Create commands
@@ -363,6 +363,12 @@ M.setup = function(opts)
   end, {
     desc = "Toggle the window showing git-dev output.",
   })
+
+  vim.api.nvim_create_user_command(
+    "GitDevRecents",
+    "Telescope git_dev recents",
+    { desc = "Revisit previously opened repositories." }
+  )
 end
 
 return M
