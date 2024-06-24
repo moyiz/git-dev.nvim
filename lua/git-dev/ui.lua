@@ -68,6 +68,9 @@ end
 
 ---Redraws window and sets cursor to the last line.
 function UI:redraw()
+  if not self.window then
+    return
+  end
   self:_ensure_buffer_valid()
   local row = vim.api.nvim_buf_line_count(self.buffer)
   -- Follow text in buffer
