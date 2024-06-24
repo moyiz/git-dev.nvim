@@ -28,7 +28,8 @@ shallow clones automatically. It aims to provide a similar experience to
 
 <!-- toc omit heading -->
 ## 📹 Demo
-[git-dev-0.5.0-(2).webm](https://github.com/moyiz/git-dev.nvim/assets/8603313/fc5c9b5a-6189-4193-8430-34c311f1178e)
+[git-dev-0.5.0.webm](https://github.com/moyiz/git-dev.nvim/assets/8603313/f0dc6ec7-84e3-4dda-8f8b-ef31eac42a1e)
+
 
 
 <!-- toc omit heading -->
