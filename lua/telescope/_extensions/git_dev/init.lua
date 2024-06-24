@@ -115,7 +115,11 @@ local recents = function(opts)
           if not selection then
             return
           end
-          require("git-dev").open(selection.value.args.repo)
+          require("git-dev").open(
+            selection.value.args.repo,
+            selection.value.args.ref,
+            selection.value.args.opts
+          )
         end)
         return true
       end,
