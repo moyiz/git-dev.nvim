@@ -48,6 +48,10 @@ local uv = vim.uv
 
 local o600 = 384
 
+local function log_err(msg)
+  vim.notify(msg, vim.log.levels.ERROR)
+end
+
 ---@class Store
 ---@field path? string DB file path or `nil` for in-memory.
 ---@field _db? StoreSchema
@@ -79,13 +83,30 @@ function Store:dump_file()
   if not self.path then
     return
   end
-  local fd = uv.fs_open(self.path, "w", o600)
-  if not fd then
-    vim.notify("Error opening " .. self.path)
-    return
-  end
-  uv.fs_write(fd, self:dump_string())
-  uv.fs_close(fd)
+  Store._write(self.path, self:dump_string(), nil)
+end
+
+function Store._write(path, data, callback)
+  uv.fs_open(path, "w", o600, function(err1, fd)
+    if err1 then
+      log_err("Error opening " .. path .. ": " .. err1)
+      return
+    end
+    uv.fs_write(fd, data, nil, function(err2, _)
+      if err2 then
+        log_err("Error writing " .. path .. ": " .. err2)
+        return
+      end
+      uv.fs_close(fd, function(err3)
+        if err3 then
+          log_err("Error closing " .. path .. ": " .. err3)
+          if callback then
+            return callback(data)
+          end
+        end
+      end)
+    end)
+  end)
 end
 
 ---Loads a file into the in-memory store if a file path was set.
@@ -101,9 +122,9 @@ function Store:load()
     self._db = self._db or StoreSchema.new()
     return
   end
-  local fd = uv.fs_open(self.path, "r", o600)
-  if not fd then
-    vim.notify("Error opening " .. self.path)
+  local fd, err = uv.fs_open(self.path, "r", o600)
+  if err then
+    log_err(err)
     return
   end
   local data = uv.fs_read(fd, stat.size)
@@ -134,7 +155,7 @@ end
 function Store:add(value)
   local r = uv.random(16)
   if not r then
-    vim.notify "Failed to generate random bytes"
+    log_err "Failed to generate random bytes"
     return
   end
   local key = ""
