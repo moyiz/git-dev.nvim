@@ -41,6 +41,10 @@ shallow clones automatically. It aims to provide a similar experience to
   - [:open_file_folder: Open](#open_file_folder-open)
     - [Parameters](#parameters)
     - [Examples](#examples)
+  - [:closed_book: Close Buffers](#closed_book-close-buffers)
+    - [Parameters](#parameters)
+  - [:toothbrush: Clean](#toothbrush-clean)
+    - [Parameters](#parameters)
   - [:broom: Clean All](#broom-clean-all)
   - [:eyeglasses: Parse](#eyeglasses-parse)
     - [Parameters](#parameters)
@@ -61,9 +65,9 @@ shallow clones automatically. It aims to provide a similar experience to
   - [:fox_face: Web browser](#fox_face-web-browser)
   - [:pencil: Customizing Default URL](#pencil-customizing-default-url)
   - [:house_with_garden: Private Repositories - Parse HTTP as SSH](#house_with_garden-private-repositories---parse-http-as-ssh)
+  - [:toothbrush: Close & Clean](#toothbrush-close--clean)
 - [:crystal_ball: Future Plans / Thoughts](#crystal_ball-future-plans--thoughts)
 - [:scroll: License](#scroll-license)
-
 <!-- panvimdoc-ignore-end -->
 
 ## :art: Features
@@ -72,6 +76,7 @@ shallow clones automatically. It aims to provide a similar experience to
 - Seamless integration with your workflow (e.g. LSP and tree-sitter).
 - Ephemeral repositories - cleanup when Neovim exits.
 - Telescope extension to revisit previously opened repositories.
+- Close buffers or clean opened repositories in current session.
 
 <!-- panvimdoc-ignore-start -->
 
@@ -93,7 +98,14 @@ Lazier (documentation will not be available until first use):
 {
   "moyiz/git-dev.nvim",
   lazy = true,
-  cmd = { "GitDevOpen", "GitDevToggleUI", "GitDevRecents", "GitDevCleanAll" },
+  cmd = {
+    "GitDevClean",
+    "GitDevCleanAll",
+    "GitDevCloseBuffers",
+    "GitDevOpen",
+    "GitDevRecents",
+    "GitDevToggleUI",
+  },
   opts = {},
 }
 ```
@@ -115,7 +127,7 @@ Open the repository in Neovim.
 supported, see [Supported URLS](#supported-urls) for examples.
 - `ref` - `table` - Target reference to checkout (default: `nil`). Empty `ref`
 will checkout the default branch.
-Examples: `{ branch = "..." }|{ tag = "..." }|{ commit = "..." }`.
+Examples: `{branch="..."}|{tag="..."}|{commit="..."}`.
 If more than one is specified, the priority is: `commit` > `tag` > `branch`.
 - `opts` - `table` - Override plugin configuration for this call (default:
 `nil`). See [Options](#gear-options) below. 
@@ -125,15 +137,46 @@ If more than one is specified, the priority is: `commit` > `tag` > `branch`.
 -- :GitDevOpen moyiz/git-dev.nvim
 require("git-dev").open("moyiz/git-dev.nvim")
 
--- :GitDevOpen derailed/k9s '{ tag = "v0.32.4" }'
+-- :GitDevOpen derailed/k9s {tag="v0.32.4"}
 require("git-dev").open("derailed/k9s", { tag = "v0.32.4" })
 
--- :GitDevOpen echasnovski/mini.nvim '{ branch = "stable" }' '{ ephemeral = false }'
+-- :GitDevOpen echasnovski/mini.nvim {branch="stable"} {ephemeral=false}
 require("git-dev").open("echasnovski/mini.nvim", { branch = "stable "}, { ephemeral = false })
 
--- :GitDevOpen https://git.savannah.gnu.org/git/bash.git '{}' '{ read_only = false }'
+-- :GitDevOpen https://git.savannah.gnu.org/git/bash.git {} {read_only=false}
 require("git-dev").open("https://git.savannah.gnu.org/git/bash.git", {}, { read_only = false })
 ```
+### :closed_book: Close Buffers
+API: `require("git-dev").close_buffers(repo, ref)`
+
+Command: `GitDevCloseBuffers`
+
+Close (delete) all buffers associated with a repository.
+By default, it will try to determine the repository directory from current
+buffer.
+If `repo` is omitted, try to determine repository from current buffer.
+If `ref` is omitted, assume it is related to current buffer if an explicit
+repository was given.
+Supports auto-completion.
+
+#### Parameters
+- `repo` - Same as `open`.
+- `ref` - Same as `open`.
+
+### :toothbrush: Clean
+API: `require("git-dev").clean(repo, ref, opts)`
+
+Command: `GitDevClean`
+
+Clean a repository. It will close all associated buffers and delete the
+repository directory if it was ephemeral.
+If `repo` is omitted, try to determine repository from current buffer.
+If `ref` is omitted, assume it is related to current buffer if an explicit
+repository was given.
+Supports auto-completion.
+
+#### Parameters
+Same as `open`.
 
 ### :broom: Clean All
 API: `require("git-dev").clean_all()`
@@ -178,6 +221,7 @@ for this call.
 
 #### :bone: Recent Repositories
 Command: `GitDevRecents`
+Telescope: `Telescope git_dev recents`
 
 Revisit previously opened repositories via a telescope extension.
 
@@ -197,7 +241,7 @@ M.config = {
   -- Set buffers of opened repositories to be read-only and unmodifiable.
   read_only = true,
   -- Whether / how to CD into opened repository.
-  -- Options: global|tab|window|none
+  ---@type "global"|"tab"|"window"|"none"
   cd_type = "global",
   -- The actual `open` behavior.
   ---@param dir string The path to the local repository.
@@ -229,11 +273,11 @@ M.config = {
     clone_args = "--jobs=2 --single-branch --recurse-submodules "
       .. "--shallow-submodules --progress",
     -- Arguments for `git fetch`.
-    -- Triggered when repository is already exists locally to refresh the local
+    -- Triggered when repository already exists locally to refresh the local
     -- copy.
     fetch_args = "--jobs=2 --no-all --update-shallow -f --prune --no-tags",
     -- Arguments for `git checkout`.
-    -- Triggered when a branch, tag or commit is given.
+    -- Triggered by `open` when a branch, tag or commit is given.
     checkout_args = "-f --recurse-submodules",
   },
   -- UI configuration.
@@ -276,6 +320,15 @@ M.config = {
     n = 32,
     -- Store file path.
     path = vim.fn.stdpath "data" .. "/git-dev/history.json",
+  },
+  -- Repository cleaning configuration.
+  clean = {
+    -- Close all related buffers.
+    close_buffers = true,
+    -- Whether to delete repository directory, keep it, or determine deletion
+    -- by its current ephemeral setting.
+    ---@type "always"|"never"|"current"
+    delete_repo_dir = "current",
   },
   -- More verbosity.
   verbose = false,
@@ -365,8 +418,10 @@ See `lua/git-dev/parser_spec.lua` for more examples.
 (Or: `GitDevOpen https://github.com/moyiz/git-dev/blob/master/lua/git-dev/parser_spec.lua`)
 
 ### Limitations
-Notice this feature is quite experimental. If you encounter any issues or have
-any questions or requests, feel free to reach out.
+URL blobs cannot be unpacked into reference and file path without prior
+knowledge of the repository. To workaround it, the parser module invokes a Git
+command to list all references and looks for the longest match. The remainder
+will be selected as the file path.
 
 
 ## :notebook: Recipes
@@ -517,11 +572,39 @@ Then, the parser trims the "domain" and proceeds as usual. Output:
 }
 ```
 
+### :toothbrush: Close & Clean
+Keymap example to close / clean current active repository.
+```lua
+{
+  "moyiz/git-dev.nvim",
+  ...
+  keys = {
+    {
+      "<leader>gc",
+      function()
+        require("git-dev").close_buffers()
+      end,
+      mode = "n",
+      desc = "[C]lose buffers of current repository",
+    },
+    {
+      "<leader>gC",
+      function()
+        require("git-dev").clean()
+      end,
+      mode = "n",
+      desc = "[C]lean current repository",
+    },
+  }
+}
+```
+
 
 <!-- panvimdoc-ignore-start -->
 
 ## :crystal_ball: Future Plans / Thoughts
 - Open repository in visual selection / current "word".
+- Persisting repositories.
 
 ## :scroll: License
 See [License](./LICENSE).
