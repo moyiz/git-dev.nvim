@@ -13,7 +13,7 @@ local function run()
 
   local failed = false
   for _, spec in ipairs(modules) do
-    print("# Testing module: " .. spec)
+    print("\n# Testing module: " .. spec)
     if require(spec).run() then
       print("# Success in " .. spec)
     else

@@ -1,5 +1,5 @@
 local function test_sanity()
-  local t = dofile("./tests/lib.lua").Session:init {}
+  local t = dofile("./tests/lib.lua").TestSession:init {}
   local Store = require "git-dev.store"
   local st = Store:init {}
 
