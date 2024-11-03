@@ -49,7 +49,7 @@ function Parser:init(o)
   return o
 end
 
----@class GitRepo
+---@class GitDevParsedRepo
 ---@field repo_url string
 ---@field full_blob? string
 ---@field commit? string
@@ -207,7 +207,7 @@ local domain_to_parser = {
 ---If domain is mapped to a specific parser, use it. Otherwise treat input as
 ---raw repository URI.
 ---@param text string
----@return GitRepo
+---@return GitDevParsedRepo
 function Parser:parse_http(text)
   local domain = text:match "https?://([^/]+)"
   local parser
@@ -229,7 +229,7 @@ end
 ---Determines whether it is a Git Bundle, local repository or a file in a local
 ---repository.
 ---@param path string
----@return GitRepo?
+---@return GitDevParsedRepo?
 function Parser:parse_local_path(path)
   -- Trim optional `file://` scheme
   path = path:gsub("file://", "")
@@ -285,14 +285,14 @@ end
 
 ---Parses text as git repository URL.
 ---@param text string
----@return GitRepo
+---@return GitDevParsedRepo
 function Parser:parse(text)
   -- Strip spaces, query parameters and anchors
   text = text
     :gsub("^%s+", "")
     :gsub("%s+$", "")
-    :gsub("#[%w-_.]+$", "")
-    :gsub("%?[%w-_.&=+:]+$", "")
+    :gsub("#[%w-_.]+$", "") -- clean permalink
+    :gsub("%?[%w-_.&=+:]+$", "") -- clean query params
 
   -- Peek at scheme
   local _, _, scheme = text:find "^(%w+)://"

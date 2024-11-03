@@ -13,27 +13,32 @@ function History:init(o)
   return o
 end
 
----@class HistoryRecord
----@field args OpenArgs
----@field parsed GitRepo
+---@class GitDevHistoryRecord
+---@field args GitDevOpenArgs
+---@field parsed GitDevParsedRepo
 
----@class OpenArgs
+---@class GitDevOpenArgs
 ---@field repo string
 ---@field ref table
 ---@field opts table
 
 function History:add(repo, ref, opts, parsed_repo)
-  ---@type HistoryRecord
+  ---@type GitDevHistoryRecord
   local record = {
     args = { repo = repo, ref = ref, opts = opts },
     parsed = parsed_repo,
   }
-  self._store:set(repo .. "|" .. vim.json.encode(ref), record)
+  self._store:set(self:key(record), record)
   self:trim()
 end
 
 function History:get()
   return self._store:get_all()
+end
+
+---@param record GitDevHistoryRecord
+function History:key(record)
+  return record.args.repo .. "|" .. vim.json.encode(record.args.ref)
 end
 
 ---Purges all history records.
