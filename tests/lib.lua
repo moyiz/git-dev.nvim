@@ -1,6 +1,6 @@
-local Session = {}
+local TestSession = {}
 
-function Session:init(o)
+function TestSession:init(o)
   o = o or {}
   setmetatable(o, self)
   self.__index = self
@@ -12,7 +12,7 @@ end
 ---@param result boolean  Whether the test passed or not.
 ---@param desc string
 ---@param i? number An optional index prefix for the test.
-function Session:assert(result, desc, i)
+function TestSession:assert(result, desc, i)
   self.total = self.total + 1
   local status = ""
   if i then
@@ -31,5 +31,5 @@ function Session:assert(result, desc, i)
 end
 
 return {
-  Session = Session,
+  TestSession = TestSession,
 }

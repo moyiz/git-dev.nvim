@@ -1,6 +1,6 @@
 local T = {}
 T.run = function()
-  local t = dofile("./tests/lib.lua").Session:init {}
+  local t = dofile("./tests/lib.lua").TestSession:init {}
   local Parser = require "git-dev.parser"
 
   local test_cases = {
@@ -371,7 +371,7 @@ T.run = function()
       end
     end
     vim.print(
-      string.format("%d/%d tests have passed!\n", #cases - t.failed, #cases)
+      string.format("%d/%d tests have passed!", #cases - t.failed, #cases)
     )
     return t.failed == 0
   end
