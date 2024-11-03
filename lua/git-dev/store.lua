@@ -216,4 +216,10 @@ function Store:get_all()
   return vim.tbl_values(self._db.data)
 end
 
+---Get the version number of the current schema.
+---@return number
+function Store:get_version()
+  return self._db.version
+end
+
 return Store

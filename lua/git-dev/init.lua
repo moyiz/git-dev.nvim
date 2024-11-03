@@ -1,5 +1,7 @@
 local M = {}
 
+local U = require "git-dev.utils"
+
 M.config = {
   -- Whether to delete an opened repository when nvim exits.
   -- If `true`, it will create an auto command for opened repositories
@@ -8,7 +10,7 @@ M.config = {
   -- Set buffers of opened repositories to be read-only and unmodifiable.
   read_only = true,
   -- Whether / how to CD into opened repository.
-  -- Options: global|tab|window|none
+  ---@type "global"|"tab"|"window"|"none"
   cd_type = "global",
   -- The actual `open` behavior.
   ---@param dir string The path to the local repository.
@@ -40,11 +42,11 @@ M.config = {
     clone_args = "--jobs=2 --single-branch --recurse-submodules "
       .. "--shallow-submodules --progress",
     -- Arguments for `git fetch`.
-    -- Triggered when repository is already exists locally to refresh the local
+    -- Triggered when repository already exists locally to refresh the local
     -- copy.
     fetch_args = "--jobs=2 --no-all --update-shallow -f --prune --no-tags",
     -- Arguments for `git checkout`.
-    -- Triggered when a branch, tag or commit is given.
+    -- Triggered by `open` when a branch, tag or commit is given.
     checkout_args = "-f --recurse-submodules",
   },
   -- UI configuration.
@@ -88,57 +90,38 @@ M.config = {
     -- Store file path.
     path = vim.fn.stdpath "data" .. "/git-dev/history.json",
   },
+  -- Repository cleaning configuration.
+  clean = {
+    -- Close all related buffers.
+    close_buffers = true,
+    -- Whether to delete repository directory, keep it, or determine deletion
+    -- by its current ephemeral setting.
+    ---@type "always"|"never"|"current"
+    delete_repo_dir = "current",
+  },
   -- More verbosity.
   verbose = false,
 }
 
---- CD command wrapper.
----@param cmd string A CD-like command (cd, lcd, tcd, ....).
----@return function(string,boolean) Invokes the CD-like command on given path.
----@private
-local function change_directory(cmd)
-  return function(path, silent)
-    return vim.api.nvim_cmd(
-      { cmd = cmd, args = { path }, mods = { silent = silent } },
-      {}
-    )
-  end
-end
+M.session = nil
+M.history = nil
 
 local cd_func = {
-  global = change_directory "cd",
-  tab = change_directory "tcd",
-  window = change_directory "lcd",
+  global = U.cmd_to_func "cd",
+  tab = U.cmd_to_func "tcd",
+  window = U.cmd_to_func "lcd",
   none = function(_, _) end,
 }
 
--- Generates a function to trigger a deletion of `repo_dir`
-local function clean_repo_callback(repo_dir)
-  return function()
-    vim.print("Cleaning " .. repo_dir)
-    local is_deleted = vim.fn.delete(repo_dir, "rf")
-    if M.config.verbose then
-      local msg
-      if is_deleted == 0 then
-        msg = "Deleted: " .. repo_dir
-      else
-        msg = "Not found: " .. repo_dir
-      end
-      vim.print(msg)
-    end
+local function delete_repo_dir(repo_dir)
+  local is_deleted = vim.fn.delete(repo_dir, "rf")
+  local msg
+  if is_deleted == 0 then
+    msg = "Deleted: " .. repo_dir
+  else
+    msg = "Not found: " .. repo_dir
   end
-end
-
--- Generates a directory name from a Git URI.
--- If `branch` is given, it will be suffixed with "#branch"
--- "https://github.com/example/repo.git" => "github.com__example__repo"
-local function git_uri_to_dir_name(uri, branch)
-  local dir_name =
-    uri:gsub("/+$", ""):gsub(".*://", ""):gsub("[/:]", "__"):gsub(".git$", "")
-  if branch and branch ~= "" then
-    dir_name = dir_name .. "#" .. branch:gsub("/", "__")
-  end
-  return dir_name
+  M.ui:print(msg)
 end
 
 local augroup = vim.api.nvim_create_augroup("GitDev", { clear = true })
@@ -197,7 +180,7 @@ M.open = function(repo, ref, opts)
 
   local repo_dir = config.repositories_dir
     .. "/"
-    .. git_uri_to_dir_name(parsed_repo.repo_url, branch)
+    .. U.git_uri_to_dir_name(parsed_repo.repo_url, branch)
 
   if config.verbose then
     ui:print(parsed_repo)
@@ -210,6 +193,7 @@ M.open = function(repo, ref, opts)
       )
       return false
     end
+
     if branch then
       ui:print "Making sure that the correct branch / tag is checked out..."
       gitcmd:checkout {
@@ -219,33 +203,63 @@ M.open = function(repo, ref, opts)
       }
     end
 
+    ---@type GitDevSessionRepo
+    local repo_ctx = {
+      repo = parsed_repo.repo_url,
+      ref = ref,
+      repo_dir = repo_dir,
+    }
+
     if config.ephemeral then
       ui:print "Ephemeral mode: creating autocmd to cleanup when nvim exits..."
       -- Delete repository directory when vim exits.
-      vim.api.nvim_create_autocmd({ "VimLeavePre" }, {
-        group = augroup,
-        callback = clean_repo_callback(repo_dir),
-      })
+      repo_ctx.ephemeral_autocmd_id = vim.api.nvim_create_autocmd(
+        { "VimLeavePre" },
+        {
+          group = augroup,
+          callback = function()
+            delete_repo_dir(repo_dir)
+          end,
+        }
+      )
     end
-
-    -- CD into repository directory
-    cd_func[config.cd_type](vim.fn.fnameescape(repo_dir), not config.verbose)
-
-    -- Open directory (or selected path)
-    config.opener(repo_dir, parsed_repo.repo_url, parsed_repo.selected_path)
 
     if config.read_only then
       -- Set all buffers in the repository directory as read-only
       -- and unmodifiable.
       ui:print("Setting read only mode for " .. repo_dir)
-      vim.api.nvim_create_autocmd({ "BufReadPost" }, {
+      repo_ctx.read_only_autocmd_id = vim.api.nvim_create_autocmd(
+        { "BufReadPost" },
+        {
+          group = augroup,
+          pattern = repo_dir .. "*",
+          callback = function()
+            vim.cmd "setlocal readonly nomodifiable"
+          end,
+        }
+      )
+    end
+
+    local ctx_id = M.session:set_repo(repo_ctx)
+    repo_ctx.set_session_autocmd_id = vim.api.nvim_create_autocmd(
+      { "BufReadPost" },
+      {
         group = augroup,
         pattern = repo_dir .. "*",
-        callback = function()
-          vim.cmd "setlocal readonly nomodifiable"
+        callback = function(t)
+          vim.api.nvim_buf_set_var(t.buf, "git_dev_session_id", ctx_id)
         end,
-      })
-    end
+      }
+    )
+
+    -- CD into repository directory
+    cd_func[config.cd_type](
+      { vim.fn.fnameescape(repo_dir) },
+      not config.verbose
+    )
+
+    -- Open directory (or selected path)
+    config.opener(repo_dir, parsed_repo.repo_url, parsed_repo.selected_path)
 
     -- Add this call to history store.
     M.history:add(repo, ref, opts, parsed_repo)
@@ -257,7 +271,7 @@ M.open = function(repo, ref, opts)
   end)
 
   if vim.fn.isdirectory(repo_dir) == 1 then
-    ui:print "Repository directory exists, refreashing..."
+    ui:print "Repository directory exists, refreshing..."
     gitcmd:refresh(
       { repo_dir = repo_dir, extra_args = config.git.fetch_args },
       post_action_callback
@@ -274,16 +288,114 @@ M.open = function(repo, ref, opts)
   end
 end
 
----Clean all repositories in the repositories directory
+---Cleans all repositories in the repositories directory
 ---DANGER: Make sure that the repositories directory is exclusive to
 ---this plugin.
 M.clean_all = function()
   vim.fn.delete(M.config.repositories_dir)
 end
 
+---@return GitDevSessionRepo?
+local function get_session_repo(repo, ref)
+  ref = ref or {}
+  if repo then
+    local ids = M.session:find {
+      { name = "repo", value = repo, type = "contains" },
+      { name = "ref", value = ref, type = "equal" },
+    }
+    if #ids == 0 then
+      vim.notify "Could not find related repository session."
+      return
+    elseif #ids > 1 then
+      vim.notify "More than one related repository sessions."
+      return
+    else
+      return M.session:get_repo(ids[1])
+    end
+  end
+  -- Fallback to current buffer
+  local ctx_id = U.buf_get_var(nil, "git_dev_session_id")
+  if ctx_id then
+    return M.session:get_repo(ctx_id)
+  end
+end
+
+---Closes (deletes) all buffers associated with the given repository and ref.
+---If none was given, it will try to determine the repository directory from
+---current buffer.
+---@param repo? string
+---@param ref? GitRef
+---@return string[]? @An array of closed paths.
+M.close_buffers = function(repo, ref)
+  local repo_ctx = get_session_repo(repo, ref)
+  if not repo_ctx then
+    vim.notify "Could not determine repository session."
+    return nil
+  end
+  local ctx_id = M.session:key(repo_ctx)
+  local deleted = {}
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    local other = U.buf_get_var(buf, "git_dev_session_id")
+    if ctx_id == other then
+      table.insert(deleted, vim.api.nvim_buf_get_name(buf))
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end
+  end
+  return deleted
+end
+
+---Cleans a repository. It will close all associated buffers and delete the
+---repository directory if it was ephemeral.
+---If no repository is given, assume it is related to current buffer.
+---If no ref is given, assume it is related to current buffer if an explicit
+---repository was given.
+---@param repo? string
+---@param ref? GitRef
+---@param opts? table Override plugin settings.
+M.clean = function(repo, ref, opts)
+  local config = vim.tbl_deep_extend("force", M.config, opts or {})
+
+  local repo_ctx = get_session_repo(repo, ref)
+  if not repo_ctx then
+    vim.notify "Could not determine repository session."
+    return
+  end
+
+  if config.clean.close_buffers then
+    if not M.close_buffers(repo_ctx.repo, repo_ctx.ref) then
+      return
+    end
+  end
+
+  if vim.uv.cwd() == repo_ctx.repo_dir then
+    vim.fn.chdir(vim.env.PWD)
+  end
+
+  -- If repository is marked as ephemeral, remove its directory.
+  if
+    config.clean.delete_repo_dir == "always"
+    or config.clean.delete_repo_dir == "current"
+      and repo_ctx.ephemeral_autocmd_id
+  then
+    delete_repo_dir(repo_ctx.repo_dir)
+  end
+
+  -- Delete autocmds
+  if repo_ctx.ephemeral_autocmd_id then
+    vim.api.nvim_del_autocmd(repo_ctx.ephemeral_autocmd_id)
+  end
+  if repo_ctx.read_only_autocmd_id then
+    vim.api.nvim_del_autocmd(repo_ctx.read_only_autocmd_id)
+  end
+  vim.api.nvim_del_autocmd(repo_ctx.set_session_autocmd_id)
+
+  -- Remove from session
+  M.session:remove(M.session:key(repo_ctx))
+end
+
 ---Parses a Git URL.
 ---@param repo string
----@return GitRepo
+---@return GitDevParsedRepo
 M.parse = function(repo, opts)
   local config = vim.tbl_deep_extend("force", M.config, opts or {})
   local gitcmd = require("git-dev.gitcmd"):init { cmd = config.git.command }
@@ -301,7 +413,32 @@ M.toggle_ui = function(win_config)
   M.ui:toggle(win_config)
 end
 
----Module Setup
+local function complete_from_session(_, line, pos)
+  local argv = vim.split(line:sub(1, pos), " +")
+  if #argv < 2 then
+    return {}
+  end
+  local repo_ids =
+    M.session:find { { name = "repo", value = argv[2], type = "contains" } }
+  if #argv == 2 then
+    return U.uniq(U.map(function(k)
+      return M.session:get_repo(k).repo
+    end, repo_ids))
+  elseif #argv == 3 then
+    local refs = U.map(function(k)
+      local ref = M.session:get_repo(k).ref
+      if ref and vim.tbl_count(ref) > 0 then
+        return vim.inspect(ref):gsub("%s", "")
+      end
+      return "{}"
+    end, repo_ids)
+    table.insert(refs, "{}")
+    return U.uniq(refs)
+  end
+  return {}
+end
+
+---Plugin Setup
 ---@param opts? table Module config table. See |M.config|.
 M.setup = function(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
@@ -336,15 +473,13 @@ M.setup = function(opts)
   ---@type GitDevHistory
   M.history = require("git-dev.history"):init(M.config.history)
 
+  -- Initialize session
+  ---@type GitDevSession
+  M.session = require("git-dev.session"):init()
+
   -- Create commands
   vim.api.nvim_create_user_command("GitDevOpen", function(cmd_args)
-    local repo, ref, cmd_opts = unpack(cmd_args.fargs)
-    if ref then
-      ref = load("return " .. ref)()
-    end
-    if cmd_opts then
-      cmd_opts = load("return " .. cmd_opts)()
-    end
+    local repo, ref, cmd_opts = U.parse_cmd_args(cmd_args)
     require("git-dev").open(repo, ref, cmd_opts)
   end, {
     desc = "Open a git repository.",
@@ -354,14 +489,34 @@ M.setup = function(opts)
   vim.api.nvim_create_user_command("GitDevCleanAll", function(_)
     require("git-dev").clean_all()
   end, {
-    desc = "Deletes the repositories directory. CAUTION: be careful "
+    desc = "Delete the repositories directory. CAUTION: be careful "
       .. "with custom paths.",
+  })
+
+  vim.api.nvim_create_user_command("GitDevCloseBuffers", function(cmd_args)
+    local repo, ref = U.parse_cmd_args(cmd_args)
+    require("git-dev").close_buffers(repo, ref)
+  end, {
+    desc = "Close (delete) all buffers associated with the same "
+      .. "repository as the current buffer.",
+    nargs = "*",
+    complete = complete_from_session,
+  })
+
+  vim.api.nvim_create_user_command("GitDevClean", function(cmd_args)
+    local repo, ref, cmd_opts = U.parse_cmd_args(cmd_args)
+    require("git-dev").clean(repo, ref, cmd_opts)
+  end, {
+    desc = "Close related buffers, delete repository directory "
+      .. "and remove repository from history store.",
+    nargs = "*",
+    complete = complete_from_session,
   })
 
   vim.api.nvim_create_user_command("GitDevToggleUI", function(_)
     require("git-dev").toggle_ui()
   end, {
-    desc = "Toggle the window showing git-dev output.",
+    desc = "Toggle output window.",
   })
 
   vim.api.nvim_create_user_command(
