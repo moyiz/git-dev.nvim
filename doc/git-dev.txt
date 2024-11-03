@@ -1,21 +1,22 @@
-*git-dev.txt*             For NVIM v0.8.0            Last change: 2024 June 24
+*git-dev.txt*           For NVIM v0.8.0          Last change: 2024 November 03
 
 ==============================================================================
 Table of Contents                                  *git-dev-table-of-contents*
 
-1. Features                                                 |git-dev-features|
-2. Usage                                                       |git-dev-usage|
+1. Usage                                                       |git-dev-usage|
   - Open                                                  |git-dev-usage-open|
+  - Close Buffers                                |git-dev-usage-close-buffers|
+  - Clean                                                |git-dev-usage-clean|
   - Clean All                                        |git-dev-usage-clean-all|
   - Parse                                                |git-dev-usage-parse|
   - Toggle UI                                        |git-dev-usage-toggle-ui|
   - Telescope                                        |git-dev-usage-telescope|
-3. Options                                                   |git-dev-options|
-4. URL Parsing                                           |git-dev-url-parsing|
+2. Options                                                   |git-dev-options|
+3. URL Parsing                                           |git-dev-url-parsing|
   - Supported URLs                        |git-dev-url-parsing-supported-urls|
   - Examples                                    |git-dev-url-parsing-examples|
   - Limitations                              |git-dev-url-parsing-limitations|
-5. Recipes                                                   |git-dev-recipes|
+4. Recipes                                                   |git-dev-recipes|
   - Interactive Opening                  |git-dev-recipes-interactive-opening|
   - nvim-tree                                      |git-dev-recipes-nvim-tree|
   - neo-tree                                        |git-dev-recipes-neo-tree|
@@ -23,21 +24,12 @@ Table of Contents                                  *git-dev-table-of-contents*
   - Web browser                                  |git-dev-recipes-web-browser|
   - Customizing Default URL          |git-dev-recipes-customizing-default-url|
   - Private Repositories - Parse HTTP as SSH|git-dev-recipes-private-repositories---parse-http-as-ssh|
+  - Close & Clean                              |git-dev-recipes-close-&-clean|
 =============================================================================
 
 
 ==============================================================================
-1. Features                                                 *git-dev-features*
-
-- Open remote Git repositories inside Neovim at branch, tag or commit.
-- Supports most URLs from GitHub, GitLab, Gitea and Codeberg.
-- Seamless integration with your workflow (e.g. LSP and tree-sitter).
-- Ephemeral repositories - cleanup when Neovim exits.
-- Telescope extension to revisit previously opened repositories.
-
-
-==============================================================================
-2. Usage                                                       *git-dev-usage*
+1. Usage                                                       *git-dev-usage*
 
 
 OPEN                                                      *git-dev-usage-open*
@@ -55,7 +47,7 @@ PARAMETERS ~
     supported, see |git-dev-supported-urls| for examples.
 - `ref` - `table` - Target reference to checkout (default: `nil`). Empty `ref`
     will checkout the default branch.
-    Examples: `{ branch = "..." }|{ tag = "..." }|{ commit = "..." }`.
+    Examples: `{branch="..."}|{tag="..."}|{commit="..."}`.
     If more than one is specified, the priority is: `commit` > `tag` > `branch`.
 - `opts` - `table` - Override plugin configuration for this call (default:
     `nil`). See |git-dev-options| below.
@@ -67,15 +59,52 @@ EXAMPLES ~
     -- :GitDevOpen moyiz/git-dev.nvim
     require("git-dev").open("moyiz/git-dev.nvim")
     
-    -- :GitDevOpen derailed/k9s '{ tag = "v0.32.4" }'
+    -- :GitDevOpen derailed/k9s {tag="v0.32.4"}
     require("git-dev").open("derailed/k9s", { tag = "v0.32.4" })
     
-    -- :GitDevOpen echasnovski/mini.nvim '{ branch = "stable" }' '{ ephemeral = false }'
+    -- :GitDevOpen echasnovski/mini.nvim {branch="stable"} {ephemeral=false}
     require("git-dev").open("echasnovski/mini.nvim", { branch = "stable "}, { ephemeral = false })
     
-    -- :GitDevOpen https://git.savannah.gnu.org/git/bash.git '{}' '{ read_only = false }'
+    -- :GitDevOpen https://git.savannah.gnu.org/git/bash.git {} {read_only=false}
     require("git-dev").open("https://git.savannah.gnu.org/git/bash.git", {}, { read_only = false })
 <
+
+
+CLOSE BUFFERS                                    *git-dev-usage-close-buffers*
+
+API: `require("git-dev").close_buffers(repo, ref)`
+
+Command: `GitDevCloseBuffers`
+
+Close (delete) all buffers associated with a repository. By default, it will
+try to determine the repository directory from current buffer. If `repo` is
+omitted, try to determine repository from current buffer. If `ref` is omitted,
+assume it is related to current buffer if an explicit repository was given.
+Supports auto-completion.
+
+
+PARAMETERS ~
+
+- `repo` - Same as `open`.
+- `ref` - Same as `open`.
+
+
+CLEAN                                                    *git-dev-usage-clean*
+
+API: `require("git-dev").clean(repo, ref, opts)`
+
+Command: `GitDevClean`
+
+Clean a repository. It will close all associated buffers and delete the
+repository directory if it was ephemeral. If `repo` is omitted, try to
+determine repository from current buffer. If `ref` is omitted, assume it is
+related to current buffer if an explicit repository was given. Supports
+auto-completion.
+
+
+PARAMETERS ~
+
+Same as `open`.
 
 
 CLEAN ALL                                            *git-dev-usage-clean-all*
@@ -131,7 +160,7 @@ TELESCOPE                                            *git-dev-usage-telescope*
 
 RECENT REPOSITORIES ~
 
-Command: `GitDevRecents`
+Command: `GitDevRecents` Telescope: `Telescope git_dev recents`
 
 Revisit previously opened repositories via a telescope extension.
 
@@ -142,7 +171,7 @@ convenient way to re-open previously opened repositories. See `history` in
 
 
 ==============================================================================
-3. Options                                                   *git-dev-options*
+2. Options                                                   *git-dev-options*
 
 >lua
     M.config = {
@@ -153,7 +182,7 @@ convenient way to re-open previously opened repositories. See `history` in
       -- Set buffers of opened repositories to be read-only and unmodifiable.
       read_only = true,
       -- Whether / how to CD into opened repository.
-      -- Options: global|tab|window|none
+      ---@type "global"|"tab"|"window"|"none"
       cd_type = "global",
       -- The actual `open` behavior.
       ---@param dir string The path to the local repository.
@@ -185,11 +214,11 @@ convenient way to re-open previously opened repositories. See `history` in
         clone_args = "--jobs=2 --single-branch --recurse-submodules "
           .. "--shallow-submodules --progress",
         -- Arguments for `git fetch`.
-        -- Triggered when repository is already exists locally to refresh the local
+        -- Triggered when repository already exists locally to refresh the local
         -- copy.
         fetch_args = "--jobs=2 --no-all --update-shallow -f --prune --no-tags",
         -- Arguments for `git checkout`.
-        -- Triggered when a branch, tag or commit is given.
+        -- Triggered by `open` when a branch, tag or commit is given.
         checkout_args = "-f --recurse-submodules",
       },
       -- UI configuration.
@@ -233,6 +262,15 @@ convenient way to re-open previously opened repositories. See `history` in
         -- Store file path.
         path = vim.fn.stdpath "data" .. "/git-dev/history.json",
       },
+      -- Repository cleaning configuration.
+      clean = {
+        -- Close all related buffers.
+        close_buffers = true,
+        -- Whether to delete repository directory, keep it, or determine deletion
+        -- by its current ephemeral setting.
+        ---@type "always"|"never"|"current"
+        delete_repo_dir = "current",
+      },
       -- More verbosity.
       verbose = false,
     }
@@ -240,7 +278,7 @@ convenient way to re-open previously opened repositories. See `history` in
 
 
 ==============================================================================
-4. URL Parsing                                           *git-dev-url-parsing*
+3. URL Parsing                                           *git-dev-url-parsing*
 
 It is reasonable to assume that browsing arbitrary Git repositories will
 probably begin in a web browser. The main purpose of this feature is to allow
@@ -337,12 +375,14 @@ https://github.com/moyiz/git-dev/blob/master/lua/git-dev/parser_spec.lua`)
 
 LIMITATIONS                                  *git-dev-url-parsing-limitations*
 
-Notice this feature is quite experimental. If you encounter any issues or have
-any questions or requests, feel free to reach out.
+URL blobs cannot be unpacked into reference and file path without prior
+knowledge of the repository. To workaround it, the parser module invokes a Git
+command to list all references and looks for the longest match. The remainder
+will be selected as the file path.
 
 
 ==============================================================================
-5. Recipes                                                   *git-dev-recipes*
+4. Recipes                                                   *git-dev-recipes*
 
 
 INTERACTIVE OPENING                      *git-dev-recipes-interactive-opening*
@@ -509,6 +549,36 @@ Then, the parser trims the "domain" and proceeds as usual. Output:
       repo_url = "ssh://git@git.home.arpa:2222/homelab/k8s.git",
       selected_path = "apps/gitea/kustomization.yaml",
       type = "http"
+    }
+<
+
+
+CLOSE & CLEAN                                  *git-dev-recipes-close-&-clean*
+
+Keymap example to close / clean current active repository.
+
+>lua
+    {
+      "moyiz/git-dev.nvim",
+      ...
+      keys = {
+        {
+          "<leader>gc",
+          function()
+            require("git-dev").close_buffers()
+          end,
+          mode = "n",
+          desc = "[C]lose buffers of current repository",
+        },
+        {
+          "<leader>gC",
+          function()
+            require("git-dev").clean()
+          end,
+          mode = "n",
+          desc = "[C]lean current repository",
+        },
+      }
     }
 <
 

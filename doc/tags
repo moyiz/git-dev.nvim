@@ -1,6 +1,6 @@
-git-dev-features	git-dev.txt	/*git-dev-features*
 git-dev-options	git-dev.txt	/*git-dev-options*
 git-dev-recipes	git-dev.txt	/*git-dev-recipes*
+git-dev-recipes-close-&-clean	git-dev.txt	/*git-dev-recipes-close-&-clean*
 git-dev-recipes-customizing-default-url	git-dev.txt	/*git-dev-recipes-customizing-default-url*
 git-dev-recipes-interactive-opening	git-dev.txt	/*git-dev-recipes-interactive-opening*
 git-dev-recipes-neo-tree	git-dev.txt	/*git-dev-recipes-neo-tree*
@@ -13,7 +13,9 @@ git-dev-url-parsing-examples	git-dev.txt	/*git-dev-url-parsing-examples*
 git-dev-url-parsing-limitations	git-dev.txt	/*git-dev-url-parsing-limitations*
 git-dev-url-parsing-supported-urls	git-dev.txt	/*git-dev-url-parsing-supported-urls*
 git-dev-usage	git-dev.txt	/*git-dev-usage*
+git-dev-usage-clean	git-dev.txt	/*git-dev-usage-clean*
 git-dev-usage-clean-all	git-dev.txt	/*git-dev-usage-clean-all*
+git-dev-usage-close-buffers	git-dev.txt	/*git-dev-usage-close-buffers*
 git-dev-usage-open	git-dev.txt	/*git-dev-usage-open*
 git-dev-usage-parse	git-dev.txt	/*git-dev-usage-parse*
 git-dev-usage-telescope	git-dev.txt	/*git-dev-usage-telescope*
