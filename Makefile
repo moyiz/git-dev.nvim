@@ -9,14 +9,15 @@ else
 endif
 
 PANVIMDOC_IMAGE ?= panvimdoc:latest
-PANVIMDOC_GIT ?= https://github.com/kdheepak/panvimdoc.git 
+PANVIMDOC_GIT ?= https://github.com/kdheepak/panvimdoc.git
 PANVIMDOC_IMAGE_EXISTS := $(shell docker inspect $(PANVIMDOC_IMAGE) > /dev/null 2>&1; echo $$?)
 
-.PHONY: all
+LATEST_TAG := $(shell git tag --list | tail -1)
+
+.PHONY: all doc version test panvimdoc-build tag
+
 all: version doc
 
-
-.PHONY: doc
 doc: version panvimdoc-build
 	@# For mini.doc:
 	@# $(NVIM) --headless --noplugin -u ./scripts/doc_init.lua -c 'lua require("mini.doc").generate()' -c qa
@@ -32,21 +33,20 @@ doc: version panvimdoc-build
 	@$(NVIM) --headless --clean -c "helptags doc/" -c qa
 	@echo Done.
 
-.PHONY: version
 version:
 	@echo ---
 	@$(NVIM) --version | awk 'NR==1||NR==3{print}'
 	@echo ---
 
-panvimdoc-build: 
+panvimdoc-build:
 	@if [[ $(PANVIMDOC_USE_DOCKER) == true ]]; then \
 		if [[ $(PANVIMDOC_IMAGE_EXISTS) != 0 ]]; then \
 			echo "Could not find local panvimdoc image, building..."; \
 			DIR=$(shell mktemp -d); \
-			cd $$DIR; \
+			pushd $$DIR; \
 			git clone $(PANVIMDOC_GIT) .; \
 			docker build -t $(PANVIMDOC_IMAGE) .; \
-			cd -; \
+			popd; \
 			echo rm -rf $$DIR; \
 			echo Done; \
 		else \
@@ -56,8 +56,22 @@ panvimdoc-build:
 		echo "Not using docker"; \
 	fi
 
-.PHONY: test
 test:
 	nvim --headless --clean -c 'set runtimepath+=.' -c 'luafile tests/runner.lua' -c qa
+
+tag:
+	@echo Last tag: $(LATEST_TAG);
+	@if [[ -n "$(TAG)" ]]; then \
+		echo Creating a tag: ${TAG}; \
+		MSG_FILE=$(shell mktemp); \
+		echo Release $(TAG) | tee $$MSG_FILE; \
+		echo | tee -a $$MSG_FILE; \
+		git log --pretty=format:%s --invert-grep --grep doc:* $(LATEST_TAG)..HEAD | tee -a $$MSG_FILE; \
+		echo; \
+		echo git tag -a $(TAG) -F $$MSG_FILE; \
+	else \
+		echo "Missing TAG definition."; \
+	fi
+
 
 # vim: ft=make ts=4 noexpandtab
