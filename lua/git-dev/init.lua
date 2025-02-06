@@ -56,7 +56,7 @@ M.config = {
     -- Delay window closing.
     close_after_ms = 3000,
     -- Window mode.
-    -- Options: floating|split
+    ---@type "floating"|"split"
     mode = "floating",
     -- Window configuration for floating mode.
     -- See `:h nvim_open_win`.
@@ -98,6 +98,20 @@ M.config = {
     -- by its current ephemeral setting.
     ---@type "always"|"never"|"current"
     delete_repo_dir = "current",
+  },
+  -- XDG handling of `nvim-getdev` URIs.
+  -- Requires: `xdg-mime` and `xdg-open`.
+  xdg_handler = {
+    enabled = false,
+    -- A location for the desktop entry.
+    desktop_entry_path = vim.fs.normalize(
+      vim.fn.stdpath "data" .. "/../applications/git-dev.desktop"
+    ),
+    -- Launcher script.
+    script = {
+      path = vim.fn.expand "~/.local/bin/git-dev-open",
+      content = '#!/usr/bin/env sh\nnvim -c GitDevXDGHandle\\ "$@"',
+    },
   },
   -- More verbosity.
   verbose = false,
@@ -476,6 +490,20 @@ M.setup = function(opts)
   -- Initialize session
   ---@type GitDevSession
   M.session = require("git-dev.session"):init()
+
+  local xdg = require "git-dev.xdg"
+  if M.config.xdg_handler.enabled then
+    xdg.enable(M.config.xdg_handler)
+    vim.api.nvim_create_user_command("GitDevXDGHandle", function(cmd_args)
+      local uri = U.parse_cmd_args(cmd_args)
+      M.ui:print(xdg.handle(uri))
+    end, {
+      desc = "xdg-open handler for git-dev.nvim URIs.",
+      nargs = "*",
+    })
+  else
+    xdg.disable(M.config.xdg_handler)
+  end
 
   -- Create commands
   vim.api.nvim_create_user_command("GitDevOpen", function(cmd_args)
