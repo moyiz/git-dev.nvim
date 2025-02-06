@@ -68,7 +68,7 @@ tag:
 		echo | tee -a $$MSG_FILE; \
 		git log --pretty=format:%s --invert-grep --grep doc:* $(LATEST_TAG)..HEAD | tee -a $$MSG_FILE; \
 		echo; \
-		echo git tag -a $(TAG) -F $$MSG_FILE; \
+		git tag -a $(TAG) -F $$MSG_FILE; \
 	else \
 		echo "Missing TAG definition."; \
 	fi
