@@ -1,5 +1,6 @@
 -- A module for de-cluttering other modules.
 local U = {}
+local uv = vim.uv
 
 ---Safe `nvim_buf_get_var`.
 ---@param buf_id? number
@@ -13,20 +14,21 @@ function U.buf_get_var(buf_id, name)
   return value
 end
 
+function U.load_param(o)
+  local ok, res = pcall(function()
+    return load("return " .. o)()
+  end)
+  if ok and res ~= nil then
+    return res
+  end
+  return o
+end
+
 ---Parses and unpacks command arguments.
 function U.parse_cmd_args(cmd_args)
-  local load_param = function(o)
-    local ok, res = pcall(function()
-      return load("return " .. o)()
-    end)
-    if ok and res ~= nil then
-      return res
-    end
-    return o
-  end
   local parsed = {}
   for _, arg in pairs(cmd_args.fargs) do
-    table.insert(parsed, load_param(arg))
+    table.insert(parsed, U.load_param(arg))
   end
   return unpack(parsed)
 end
@@ -85,4 +87,65 @@ function U.map(f, arr)
   return results
 end
 
+function U.sh_spawn(cmd, callback)
+  local stdout = uv.new_pipe()
+  local stderr = uv.new_pipe()
+
+  local handle
+  handle = uv.spawn(
+    "sh",
+    { args = { "-c", cmd }, stdio = { nil, stdout, stderr } },
+    function(code)
+      if callback then
+        callback(code)
+      end
+      if handle then
+        handle:close()
+      end
+      stdout:read_stop()
+      stdout:close()
+      stderr:read_stop()
+      stderr:close()
+    end
+  )
+
+  return { handle = handle, stdout = stdout, stderr = stderr }
+end
+
+U.o600 = 384
+U.o700 = 448
+
+function U.overwrite_if_changed(path, expected_content, perms)
+  perms = perms or U.o600
+  local current_content
+  local stat = uv.fs_stat(path)
+  if stat then
+    local fd, err = uv.fs_open(path, "r", perms)
+    if err or not fd then
+      vim.api.nvim_err_writeln(err or "Failed to open")
+      return
+    end
+    current_content = uv.fs_read(fd, stat.size)
+    uv.fs_close(fd)
+  end
+  if current_content ~= expected_content then
+    vim.fn.mkdir(vim.fs.dirname(path), "p")
+    uv.fs_open(path, "w", perms, function(err1, fd)
+      if err1 or not fd then
+        vim.api.nvim_err_writeln(err1 or "Failed to open")
+        return
+      end
+      uv.fs_write(fd, expected_content, nil, function(err2, _)
+        if err2 then
+          vim.api.nvim_err_writeln(err2 or "Failed to write")
+        end
+        uv.fs_close(fd, function(err3)
+          if err3 then
+            vim.api.nvim_err_writeln(err3 or "Failed to close")
+          end
+        end)
+      end)
+    end)
+  end
+end
 return U

@@ -21,31 +21,10 @@ end
 ---Spawns a command and returns its handle and std{out,err} pipes.
 ---@param cmd string
 function GitCmd:_spawn(cmd, callback)
-  local stdout = uv.new_pipe()
-  local stderr = uv.new_pipe()
-
-  local handle
-  handle = uv.spawn(
-    "sh",
-    { args = { "-c", cmd }, stdio = { nil, stdout, stderr } },
-    function(code)
-      if callback then
-        callback(code)
-      end
-      if handle then
-        handle:close()
-      end
-      stdout:read_stop()
-      stdout:close()
-      stderr:read_stop()
-      stderr:close()
-    end
-  )
-
-  uv.read_start(stdout, self.on_output)
-  uv.read_start(stderr, self.on_output)
-
-  return { handle = handle, stdout = stdout, stderr = stderr }
+  local s = require("git-dev.utils").sh_spawn(cmd, callback)
+  uv.read_start(s.stdout, self.on_output)
+  uv.read_start(s.stderr, self.on_output)
+  return s
 end
 
 ---@class CloneOpts
