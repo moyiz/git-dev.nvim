@@ -6,6 +6,7 @@ git-dev-recipes-interactive-opening	git-dev.txt	/*git-dev-recipes-interactive-op
 git-dev-recipes-neo-tree	git-dev.txt	/*git-dev-recipes-neo-tree*
 git-dev-recipes-new-tab	git-dev.txt	/*git-dev-recipes-new-tab*
 git-dev-recipes-nvim-tree	git-dev.txt	/*git-dev-recipes-nvim-tree*
+git-dev-recipes-tridactyl---open-in-neovim	git-dev.txt	/*git-dev-recipes-tridactyl---open-in-neovim*
 git-dev-recipes-web-browser	git-dev.txt	/*git-dev-recipes-web-browser*
 git-dev-table-of-contents	git-dev.txt	/*git-dev-table-of-contents*
 git-dev-url-parsing	git-dev.txt	/*git-dev-url-parsing*
@@ -20,4 +21,5 @@ git-dev-usage-open	git-dev.txt	/*git-dev-usage-open*
 git-dev-usage-parse	git-dev.txt	/*git-dev-usage-parse*
 git-dev-usage-telescope	git-dev.txt	/*git-dev-usage-telescope*
 git-dev-usage-toggle-ui	git-dev.txt	/*git-dev-usage-toggle-ui*
+git-dev-xdg-handling	git-dev.txt	/*git-dev-xdg-handling*
 git-dev.txt	git-dev.txt	/*git-dev.txt*
