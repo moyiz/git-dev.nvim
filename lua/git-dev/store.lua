@@ -88,7 +88,7 @@ end
 
 function Store._write(path, data, callback)
   uv.fs_open(path, "w", o600, function(err1, fd)
-    if err1 then
+    if err1 or not fd then
       log_err("Error opening " .. path .. ": " .. err1)
       return
     end
@@ -123,7 +123,7 @@ function Store:load()
     return
   end
   local fd, err = uv.fs_open(self.path, "r", o600)
-  if err then
+  if err or not fd then
     log_err(err)
     return
   end
