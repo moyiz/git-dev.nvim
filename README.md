@@ -57,6 +57,7 @@ shallow clones automatically. It aims to provide a similar experience to
   - [Supported URLs](#supported-urls)
   - [Examples](#examples)
   - [Limitations](#limitations)
+- [:desktop_computer: XDG Handling](#desktop_computer-xdg-handling)
 - [:notebook: Recipes](#notebook-recipes)
   - [:grey_question: Interactive Opening](#grey_question-interactive-opening)
   - [:evergreen_tree: nvim-tree](#evergreen_tree-nvim-tree)
@@ -66,7 +67,7 @@ shallow clones automatically. It aims to provide a similar experience to
   - [:pencil: Customizing Default URL](#pencil-customizing-default-url)
   - [:house_with_garden: Private Repositories - Parse HTTP as SSH](#house_with_garden-private-repositories---parse-http-as-ssh)
   - [:toothbrush: Close & Clean](#toothbrush-close--clean)
-- [:crystal_ball: Future Plans / Thoughts](#crystal_ball-future-plans--thoughts)
+  - [:footprints: Tridactyl - Open in Neovim](#footprints-tridactyl---open-in-neovim)
 - [:scroll: License](#scroll-license)
 <!-- panvimdoc-ignore-end -->
 
@@ -77,6 +78,7 @@ shallow clones automatically. It aims to provide a similar experience to
 - Ephemeral repositories - cleanup when Neovim exits.
 - Telescope extension to revisit previously opened repositories.
 - Close buffers or clean opened repositories in current session.
+- XDG handling.
 
 <!-- panvimdoc-ignore-start -->
 
@@ -287,7 +289,7 @@ M.config = {
     -- Delay window closing.
     close_after_ms = 3000,
     -- Window mode.
-    -- Options: floating|split
+    ---@type "floating"|"split"
     mode = "floating",
     -- Window configuration for floating mode.
     -- See `:h nvim_open_win`.
@@ -329,6 +331,20 @@ M.config = {
     -- by its current ephemeral setting.
     ---@type "always"|"never"|"current"
     delete_repo_dir = "current",
+  },
+  -- XDG handling of `nvim-getdev` URIs.
+  -- Requires: `xdg-mime` and `xdg-open`.
+  xdg_handler = {
+    enabled = false,
+    -- A location for the desktop entry.
+    desktop_entry_path = vim.fs.normalize(
+      vim.fn.stdpath "data" .. "/../applications/git-dev.desktop"
+    ),
+    -- Launcher script.
+    script = {
+      path = vim.fn.expand "~/.local/bin/git-dev-open",
+      content = '#!/usr/bin/env sh\nnvim -c GitDevXDGHandle\\ "$@"',
+    },
   },
   -- More verbosity.
   verbose = false,
@@ -422,6 +438,38 @@ URL blobs cannot be unpacked into reference and file path without prior
 knowledge of the repository. To workaround it, the parser module invokes a Git
 command to list all references and looks for the longest match. The remainder
 will be selected as the file path.
+
+## :desktop_computer: XDG Handling
+To enable XDG handling, adjust your config:
+```lua
+{
+  ...
+  xdg_handler = {
+    enabled = true,
+  },
+}
+```
+The next plugin setup will generate a desktop entry for `git-dev.nvim`,
+a launcher script that will be called by the desktop entry (to workaround
+limitations of escaping with `xdg-open`) and will it as the default handler for
+`nvim-gitdev` URIs.
+
+`git-dev.nvim` URIs follow the following scheme:
+```
+nvim-gitdev://<method>/?param1=value1&param2=value2
+```
+Example:
+```
+nvim-gitdev://open/?repo=moyiz/git-dev.nvim
+```
+Parameter names are ignored. All parameter values are unpacked and passed to the
+method as positional arguments.
+
+> [!NOTE]
+> The desktop entry contains `Terminal=true` attribute, which could or could not
+> work depends on your setup. If a new terminal is not launched, update
+> `opts.xdg_handler.script.content` and wrap the command with a terminal.
+> Example: `content = '#!/usr/bin/env sh\nalacritty -e nvim -c GitDevXDGHandle\\ "$@"'`
 
 
 ## :notebook: Recipes
@@ -573,7 +621,7 @@ Then, the parser trims the "domain" and proceeds as usual. Output:
 ```
 
 ### :toothbrush: Close & Clean
-Keymap example to close / clean current active repository.
+Keymap example to close / clean currently active repository.
 ```lua
 {
   "moyiz/git-dev.nvim",
@@ -597,14 +645,23 @@ Keymap example to close / clean current active repository.
     },
   }
 }
+
 ```
 
+### :footprints: Tridactyl - Open in Neovim
+Requires [native messenger](https://github.com/tridactyl/tridactyl?tab=readme-ov-file#extra-features-through-native-messaging).
+
+```vim
+bind ;go composite get_current_url | shellescape | js -p tri.excmds.exclaim("alacritty -e nvim -c \'GitDevOpen " + JS_ARG + "\'")
+```
+Or if you enabled `xdg_handler`:
+```vim
+bind ;go composite get_current_url | shellescape | js -p tri.excmds.exclaim("xdg-open nvim-gitdev://open/?repo=" + JS_ARG)
+```
+
+Set the keymap and terminal by preference.
 
 <!-- panvimdoc-ignore-start -->
-
-## :crystal_ball: Future Plans / Thoughts
-- Open repository in visual selection / current "word".
-- Persisting repositories.
 
 ## :scroll: License
 See [License](./LICENSE).
