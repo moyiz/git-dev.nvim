@@ -666,7 +666,7 @@ Set the keymap and terminal by preference.
 ### :footprints: Qutebrowser - Open in Neovim
 
 ```python
-config.bind('<Space>.', 'spawn ghostty -e xdg-open "nvim-gitdev://open/?repo={url}"')
+config.bind('<Space>.', 'spawn kitty -e xdg-open "nvim-gitdev://open/?repo={url}"')
 ```
 
 <!-- panvimdoc-ignore-start -->
