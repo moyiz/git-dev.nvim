@@ -6,6 +6,7 @@ git-dev-recipes-interactive-opening	git-dev.txt	/*git-dev-recipes-interactive-op
 git-dev-recipes-neo-tree	git-dev.txt	/*git-dev-recipes-neo-tree*
 git-dev-recipes-new-tab	git-dev.txt	/*git-dev-recipes-new-tab*
 git-dev-recipes-nvim-tree	git-dev.txt	/*git-dev-recipes-nvim-tree*
+git-dev-recipes-qutebrowser---open-in-neovim	git-dev.txt	/*git-dev-recipes-qutebrowser---open-in-neovim*
 git-dev-recipes-tridactyl---open-in-neovim	git-dev.txt	/*git-dev-recipes-tridactyl---open-in-neovim*
 git-dev-recipes-web-browser	git-dev.txt	/*git-dev-recipes-web-browser*
 git-dev-table-of-contents	git-dev.txt	/*git-dev-table-of-contents*
