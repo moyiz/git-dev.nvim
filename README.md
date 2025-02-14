@@ -107,6 +107,7 @@ Lazier (documentation will not be available until first use):
     "GitDevOpen",
     "GitDevRecents",
     "GitDevToggleUI",
+    "GitDevXDGHandle",
   },
   opts = {},
 }
