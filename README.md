@@ -68,6 +68,7 @@ shallow clones automatically. It aims to provide a similar experience to
   - [:house_with_garden: Private Repositories - Parse HTTP as SSH](#house_with_garden-private-repositories---parse-http-as-ssh)
   - [:toothbrush: Close & Clean](#toothbrush-close--clean)
   - [:footprints: Tridactyl - Open in Neovim](#footprints-tridactyl---open-in-neovim)
+  - [:footprints: Qutebrowser - Open in Neovim](#footprints-qutebrowser---open-in-neovim)
 - [:scroll: License](#scroll-license)
 <!-- panvimdoc-ignore-end -->
 
@@ -661,6 +662,12 @@ bind ;go composite get_current_url | shellescape | js -p tri.excmds.exclaim("xdg
 ```
 
 Set the keymap and terminal by preference.
+
+### :footprints: Qutebrowser - Open in Neovim
+
+```python
+config.bind('<Space>.', 'spawn ghostty -e xdg-open "nvim-gitdev://open/?repo={url}"')
+```
 
 <!-- panvimdoc-ignore-start -->
 
