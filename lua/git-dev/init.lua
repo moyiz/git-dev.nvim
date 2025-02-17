@@ -266,14 +266,14 @@ M.open = function(repo, ref, opts)
       }
     )
 
+    -- Open directory (or selected path)
+    config.opener(repo_dir, parsed_repo.repo_url, parsed_repo.selected_path)
+
     -- CD into repository directory
     cd_func[config.cd_type](
       { vim.fn.fnameescape(repo_dir) },
       not config.verbose
     )
-
-    -- Open directory (or selected path)
-    config.opener(repo_dir, parsed_repo.repo_url, parsed_repo.selected_path)
 
     -- Add this call to history store.
     M.history:add(repo, ref, opts, parsed_repo)
