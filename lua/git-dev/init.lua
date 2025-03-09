@@ -51,6 +51,8 @@ M.config = {
   },
   -- UI configuration.
   ui = {
+    -- Whether to enable builtin output buffer or fallback to `vim.notify`.
+    enabled = true,
     -- Auto-close window after repository was opened.
     auto_close = true,
     -- Delay window closing.
@@ -162,6 +164,7 @@ M.open = function(repo, ref, opts)
   local config = vim.tbl_deep_extend("force", M.config, opts or {})
   local ui = M.ui
   ui:show()
+  ui:print("Opening " .. repo):emit()
 
   local gitcmd = require("git-dev.gitcmd"):init {
     cmd = config.git.command,
@@ -189,7 +192,7 @@ M.open = function(repo, ref, opts)
     or parsed_repo.branch
 
   if not branch and parsed_repo.full_blob then
-    ui:print "Could not detect branch / tag / commit in given URI."
+    ui:print "Could not detect a ref in given URI, falling back to default."
   end
 
   local repo_dir = config.repositories_dir
@@ -200,7 +203,7 @@ M.open = function(repo, ref, opts)
     ui:print(parsed_repo)
   end
 
-  local post_action_callback = vim.schedule_wrap(function()
+  local post_action_callback = function()
     if vim.fn.isdirectory(repo_dir) == 0 then
       ui:print(
         "Repository not found at: " .. parsed_repo.repo_url .. ", aborting..."
@@ -279,6 +282,10 @@ M.open = function(repo, ref, opts)
     M.history:add(repo, ref, opts, parsed_repo)
 
     ui:print "Done."
+  end
+
+  local clone_callback = vim.schedule_wrap(function()
+    pcall(post_action_callback)
     if config.ui.auto_close then
       ui:close(config.ui.close_after_ms)
     end
@@ -288,7 +295,7 @@ M.open = function(repo, ref, opts)
     ui:print "Repository directory exists, refreshing..."
     gitcmd:refresh(
       { repo_dir = repo_dir, extra_args = config.git.fetch_args },
-      post_action_callback
+      clone_callback
     )
   else
     -- Fresh clone
@@ -298,7 +305,7 @@ M.open = function(repo, ref, opts)
       repo_dir = repo_dir,
       branch = parsed_repo.branch,
       extra_args = config.git.clone_args,
-    }, post_action_callback)
+    }, clone_callback)
   end
 end
 
@@ -462,26 +469,37 @@ M.setup = function(opts)
   vim.fn.mkdir(vim.fs.dirname(M.config.history.path), "p")
 
   -- Prepare UI
-  local win_config
-  if M.config.ui.mode == "split" then
-    local v = vim.version()
-    -- `nvim_open_win` supports splitting in Neovim>=0.10.0
-    -- `ge` was added in 0.10.0.
-    if vim.version.lt({ v.major, v.minor, v.patch }, { 0, 10, 0 }) == false then
-      win_config = M.config.ui.split_win_config
+  if M.config.ui.enabled then
+    local win_config
+    if M.config.ui.mode == "split" then
+      local v = vim.version()
+      -- `nvim_open_win` supports splitting in Neovim>=0.10.0
+      -- `ge` was added in 0.10.0.
+      if
+        vim.version.lt({ v.major, v.minor, v.patch }, { 0, 10, 0 }) == false
+      then
+        win_config = M.config.ui.split_win_config
+      else
+        vim.notify(
+          "Split mode is not supported in Neovim < 0.10.0. "
+            .. "Falling back to floating mode."
+        )
+        win_config = M.config.ui.floating_win_config
+      end
     else
-      vim.notify(
-        "Split mode is not supported in Neovim < 0.10.0. "
-          .. "Falling back to floating mode."
-      )
       win_config = M.config.ui.floating_win_config
     end
+    M.ui = require("git-dev.ui"):init {
+      win_config = win_config,
+    }
+    vim.api.nvim_create_user_command("GitDevToggleUI", function(_)
+      require("git-dev").toggle_ui()
+    end, {
+      desc = "Toggle output window.",
+    })
   else
-    win_config = M.config.ui.floating_win_config
+    M.ui = require("git-dev.uistub"):init {}
   end
-  M.ui = require("git-dev.ui"):init {
-    win_config = win_config,
-  }
 
   -- Initialize store
   ---@type GitDevHistory
@@ -496,7 +514,7 @@ M.setup = function(opts)
     xdg.enable(M.config.xdg_handler)
     vim.api.nvim_create_user_command("GitDevXDGHandle", function(cmd_args)
       local uri = U.parse_cmd_args(cmd_args)
-      M.ui:print(xdg.handle(uri))
+      xdg.handle(uri)
     end, {
       desc = "xdg-open handler for git-dev.nvim URIs.",
       nargs = "*",
@@ -539,12 +557,6 @@ M.setup = function(opts)
       .. "and remove repository from history store.",
     nargs = "*",
     complete = complete_from_session,
-  })
-
-  vim.api.nvim_create_user_command("GitDevToggleUI", function(_)
-    require("git-dev").toggle_ui()
-  end, {
-    desc = "Toggle output window.",
   })
 
   vim.api.nvim_create_user_command(

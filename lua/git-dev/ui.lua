@@ -111,6 +111,8 @@ function UI:print(...)
   return self
 end
 
+function UI:emit() end
+
 ---Closes window after given delay.
 ---@param delay? integer Time to wait before closing the window in ms.
 function UI:close(delay)

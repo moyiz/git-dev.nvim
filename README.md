@@ -286,6 +286,8 @@ M.config = {
   },
   -- UI configuration.
   ui = {
+    -- Whether to enable builtin output buffer or fallback to `vim.notify`.
+    enabled = true,
     -- Auto-close window after repository was opened.
     auto_close = true,
     -- Delay window closing.
