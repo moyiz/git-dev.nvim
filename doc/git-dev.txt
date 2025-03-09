@@ -1,4 +1,4 @@
-*git-dev.txt*           For NVIM v0.8.0          Last change: 2025 February 17
+*git-dev.txt*            For NVIM v0.8.0            Last change: 2025 March 09
 
 ==============================================================================
 Table of Contents                                  *git-dev-table-of-contents*
@@ -226,6 +226,8 @@ convenient way to re-open previously opened repositories. See `history` in
       },
       -- UI configuration.
       ui = {
+        -- Whether to enable builtin output buffer or fallback to `vim.notify`.
+        enabled = true,
         -- Auto-close window after repository was opened.
         auto_close = true,
         -- Delay window closing.
