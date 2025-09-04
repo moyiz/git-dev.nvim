@@ -40,16 +40,16 @@ end
 
 XDG.enable = function(opts)
   utils.overwrite_if_changed(opts.script.path, opts.script.content, utils.o700)
+
   local script_path = vim.fn.expand(opts.script.path)
+  local binary_name = vim.fn.fnamemodify(script_path, ":t")
+  local exe_path = vim.fn.exepath(binary_name)
+
   local desktop_entry = {
     name = "GitDev",
-    exec = script_path .. " %u",
+    exec = ((exe_path ~= "" and binary_name) or script_path) .. " %u",
     mime_type = "x-scheme-handler/nvim-gitdev",
   }
-  local script_name = script_path:match "([^/]+)$"
-  if script_path == vim.fn.expand("~/.local/bin/" .. script_name) then
-    desktop_entry.exec = script_name .. " %u"
-  end
 
   utils.overwrite_if_changed(
     opts.desktop_entry_path,
