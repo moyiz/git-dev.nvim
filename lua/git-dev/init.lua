@@ -179,6 +179,7 @@ M.open = function(repo, ref, opts)
   }
   local parser = require("git-dev.parser"):init {
     gitcmd = gitcmd,
+    default_org = config.git.default_org,
     base_uri_format = config.git.base_uri_format,
     extra_domain_to_parser = config.extra_domain_to_parser,
   }
@@ -422,6 +423,7 @@ M.parse = function(repo, opts)
   local gitcmd = require("git-dev.gitcmd"):init { cmd = config.git.command }
   local parser = require("git-dev.parser"):init {
     gitcmd = gitcmd,
+    default_org = config.git.default_org,
     base_uri_format = config.git.base_uri_format,
     extra_domain_to_parser = config.extra_domain_to_parser,
   }
