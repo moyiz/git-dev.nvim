@@ -105,6 +105,7 @@ Lazier (documentation will not be available until first use):
     "GitDevClean",
     "GitDevCleanAll",
     "GitDevCloseBuffers",
+    "GitDevPersist",
     "GitDevOpen",
     "GitDevRecents",
     "GitDevToggleUI",
@@ -158,6 +159,22 @@ Command: `GitDevCloseBuffers`
 Close (delete) all buffers associated with a repository.
 By default, it will try to determine the repository directory from current
 buffer.
+If `repo` is omitted, try to determine repository from current buffer.
+If `ref` is omitted, assume it is related to current buffer if an explicit
+repository was given.
+Supports auto-completion.
+
+#### Parameters
+- `repo` - Same as `open`.
+- `ref` - Same as `open`.
+
+### :floppy_disk: Persist Repository
+API: `require("git-dev").persist(repo, ref)`
+
+Command: `GitDevPersist`
+
+Make an ephemeral repository persistent. It will not be deleted when Neovim
+exits.
 If `repo` is omitted, try to determine repository from current buffer.
 If `ref` is omitted, assume it is related to current buffer if an explicit
 repository was given.

@@ -92,6 +92,24 @@ PARAMETERS ~
 - `ref` - Same as `open`.
 
 
+PERSIST                                                *git-dev-usage-persist*
+
+API: `require("git-dev").persist(repo, ref)`
+
+Command: `GitDevPersist`
+
+Make an ephemeral repository persistent. It will not be deleted when Neovim
+exits. If `repo` is omitted, try to determine repository from current buffer. If
+`ref` is omitted, assume it is related to current buffer if an explicit
+repository was given. Supports auto-completion.
+
+
+PARAMETERS ~
+
+- `repo` - Same as `open`.
+- `ref` - Same as `open`.
+
+
 CLEAN                                                    *git-dev-usage-clean*
 
 API: `require("git-dev").clean(repo, ref, opts)`
