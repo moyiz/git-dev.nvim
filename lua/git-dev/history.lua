@@ -22,7 +22,7 @@ end
 ---@field ref table
 ---@field opts table
 
----@return string @key
+---@return Key
 function History:add(repo, ref, opts, parsed_repo)
   ---@type GitDevHistoryRecord
   local record = {

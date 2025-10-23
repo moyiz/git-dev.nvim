@@ -5,7 +5,7 @@
 ---@field ephemeral_autocmd_id? number
 ---@field read_only_autocmd_id? number
 ---@field set_session_autocmd_id? number
----@field history_key string
+---@field history_key? Key
 
 ---@alias GitDevSessionRepos table<number, GitDevSessionRepo>
 

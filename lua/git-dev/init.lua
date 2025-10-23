@@ -280,8 +280,7 @@ M.open = function(repo, ref, opts)
     )
 
     -- Add this call to history store.
-    local history_key = M.history:add(repo, ref, opts, parsed_repo)
-    repo_ctx.history_key = history_key
+    repo_ctx.history_key = M.history:add(repo, ref, opts, parsed_repo)
 
     ui:print "Done."
   end
@@ -383,7 +382,9 @@ M.persist = function(repo, ref)
     vim.api.nvim_del_autocmd(repo_ctx.ephemeral_autocmd_id)
     repo_ctx.ephemeral_autocmd_id = nil
     M.session:set_repo(repo_ctx)
-    M.history:update_opts(repo_ctx.history_key, { ephemeral = false })
+    if repo_ctx.history_key then
+      M.history:update_opts(repo_ctx.history_key, { ephemeral = false })
+    end
     vim.notify("Repository is now persistent: " .. repo_ctx.repo)
   else
     vim.notify("Repository is already persistent: " .. repo_ctx.repo)
