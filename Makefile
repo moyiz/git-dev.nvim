@@ -66,7 +66,7 @@ tag:
 		MSG_FILE=$(shell mktemp); \
 		echo Release $(TAG) | tee $$MSG_FILE; \
 		echo | tee -a $$MSG_FILE; \
-		git log --pretty=format:%s --invert-grep --grep doc:* $(LATEST_TAG)..HEAD | tee -a $$MSG_FILE; \
+		git log --pretty=format:%s $(LATEST_TAG)..HEAD | grep -v -e docs -e chore | tee -a $$MSG_FILE; \
 		echo; \
 		git tag -a $(TAG) -F $$MSG_FILE; \
 	else \
