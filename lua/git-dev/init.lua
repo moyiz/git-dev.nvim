@@ -280,7 +280,7 @@ M.open = function(repo, ref, opts)
     )
 
     -- Add this call to history store.
-    M.history:add(repo, ref, opts, parsed_repo)
+    repo_ctx.history_key = M.history:add(repo, ref, opts, parsed_repo)
 
     ui:print "Done."
   end
@@ -364,6 +364,31 @@ M.close_buffers = function(repo, ref)
     end
   end
   return deleted
+end
+
+---Makes a repository persistent.
+---It will remove the autocmd that deletes the repository directory when
+---nvim exits.
+---If no repository is given, assume it is related to current buffer.
+---@param repo? string
+---@param ref? GitRef
+M.persist = function(repo, ref)
+  local repo_ctx = get_session_repo(repo, ref)
+  if not repo_ctx then
+    vim.notify "Could not determine repository session."
+    return
+  end
+  if repo_ctx.ephemeral_autocmd_id then
+    vim.api.nvim_del_autocmd(repo_ctx.ephemeral_autocmd_id)
+    repo_ctx.ephemeral_autocmd_id = nil
+    M.session:set_repo(repo_ctx)
+    if repo_ctx.history_key then
+      M.history:update_opts(repo_ctx.history_key, { ephemeral = false })
+    end
+    vim.notify("Repository is now persistent: " .. repo_ctx.repo)
+  else
+    vim.notify("Repository is already persistent: " .. repo_ctx.repo)
+  end
 end
 
 ---Cleans a repository. It will close all associated buffers and delete the
@@ -539,6 +564,15 @@ M.setup = function(opts)
   end, {
     desc = "Delete the repositories directory. CAUTION: be careful "
       .. "with custom paths.",
+  })
+
+  vim.api.nvim_create_user_command("GitDevPersist", function(cmd_args)
+    local repo, ref = U.parse_cmd_args(cmd_args)
+    require("git-dev").persist(repo, ref)
+  end, {
+    desc = "Make repository persistent",
+    nargs = "*",
+    complete = complete_from_session,
   })
 
   vim.api.nvim_create_user_command("GitDevCloseBuffers", function(cmd_args)

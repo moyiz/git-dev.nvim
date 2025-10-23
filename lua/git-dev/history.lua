@@ -22,14 +22,17 @@ end
 ---@field ref table
 ---@field opts table
 
+---@return Key
 function History:add(repo, ref, opts, parsed_repo)
   ---@type GitDevHistoryRecord
   local record = {
     args = { repo = repo, ref = ref, opts = opts },
     parsed = parsed_repo,
   }
-  self._store:set(self:key(record), record)
+  local key = self:key(record)
+  self._store:set(key, record)
   self:trim()
+  return key
 end
 
 function History:get()
@@ -39,6 +42,16 @@ end
 ---@param record GitDevHistoryRecord
 function History:key(record)
   return record.args.repo .. "|" .. vim.json.encode(record.args.ref)
+end
+
+function History:update_opts(key, opts)
+  local record = self._store:get(key)
+  if not record then
+    return
+  end
+  record.args.opts =
+    vim.tbl_deep_extend("force", record.args.opts or {}, opts or {})
+  self._store:set(key, record)
 end
 
 ---Purges all history records.
