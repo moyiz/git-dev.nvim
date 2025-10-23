@@ -1,4 +1,4 @@
-*git-dev.txt*          For NVIM v0.8.0          Last change: 2025 September 14
+*git-dev.txt*           For NVIM v0.8.0           Last change: 2025 October 23
 
 ==============================================================================
 Table of Contents                                  *git-dev-table-of-contents*
@@ -6,6 +6,7 @@ Table of Contents                                  *git-dev-table-of-contents*
 1. Usage                                                       |git-dev-usage|
   - Open                                                  |git-dev-usage-open|
   - Close Buffers                                |git-dev-usage-close-buffers|
+  - Persist Repository                      |git-dev-usage-persist-repository|
   - Clean                                                |git-dev-usage-clean|
   - Clean All                                        |git-dev-usage-clean-all|
   - Parse                                                |git-dev-usage-parse|
@@ -84,6 +85,24 @@ try to determine the repository directory from current buffer. If `repo` is
 omitted, try to determine repository from current buffer. If `ref` is omitted,
 assume it is related to current buffer if an explicit repository was given.
 Supports auto-completion.
+
+
+PARAMETERS ~
+
+- `repo` - Same as `open`.
+- `ref` - Same as `open`.
+
+
+PERSIST REPOSITORY                          *git-dev-usage-persist-repository*
+
+API: `require("git-dev").persist(repo, ref)`
+
+Command: `GitDevPersist`
+
+Make an ephemeral repository persistent. It will not be deleted when Neovim
+exits. If `repo` is omitted, try to determine repository from current buffer.
+If `ref` is omitted, assume it is related to current buffer if an explicit
+repository was given. Supports auto-completion.
 
 
 PARAMETERS ~
