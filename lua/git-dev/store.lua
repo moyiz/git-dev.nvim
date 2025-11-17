@@ -190,7 +190,7 @@ end
 
 ---Get the keys of the `n` least recent items in store.
 ---Order is not guaranteed. Not very efficient.
----@param n integer Number of least recent records to return.
+---@param n? integer Number of least recent records to return.
 ---@return table
 function Store:least_recent(n)
   self:load()
@@ -199,6 +199,15 @@ function Store:least_recent(n)
     return self._db.metadata.update_time[k1] < self._db.metadata.update_time[k2]
   end)
   return vim.list_slice(keys, 1, n)
+end
+
+function Store:least_recent_values(n)
+  return vim
+    .iter(self:least_recent(n))
+    :map(function(k)
+      return self._db.data[k]
+    end)
+    :totable()
 end
 
 ---Purges the store. Removes store file if exists.

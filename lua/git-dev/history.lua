@@ -36,7 +36,7 @@ function History:add(repo, ref, opts, parsed_repo)
 end
 
 function History:get()
-  return self._store:get_all()
+  return vim.iter(self._store:least_recent_values(self.n)):rev():totable()
 end
 
 ---@param record GitDevHistoryRecord
@@ -45,6 +45,7 @@ function History:key(record)
 end
 
 function History:update_opts(key, opts)
+  ---@type GitDevHistoryRecord
   local record = self._store:get(key)
   if not record then
     return
