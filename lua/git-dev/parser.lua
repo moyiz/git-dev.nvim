@@ -34,7 +34,6 @@ end
 ---@field base_uri_format string
 ---@field default_org? string
 ---@field extra_domain_to_parser? table
----@field parse function
 local Parser = {}
 
 ---@param o Parser
