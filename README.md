@@ -43,6 +43,8 @@ shallow clones automatically. It aims to provide a similar experience to
     - [Examples](#examples)
   - [:closed_book: Close Buffers](#closed_book-close-buffers)
     - [Parameters](#parameters)
+  - [:floppy_disk: Persist Repository](#floppy_disk-persist-repository)
+    - [Parameters](#parameters)
   - [:toothbrush: Clean](#toothbrush-clean)
     - [Parameters](#parameters)
   - [:broom: Clean All](#broom-clean-all)
@@ -50,8 +52,8 @@ shallow clones automatically. It aims to provide a similar experience to
     - [Parameters](#parameters)
   - [:goggles: Toggle UI](#goggles-toggle-ui)
     - [Parameters](#parameters)
-  - [:telescope: Telescope](#telescope-telescope)
-    - [:bone: Recent Repositories](#bone-recent-repositories)
+  - [:pick: Pickers](#pick-pickers)
+    - [:rock: History](#rock-history)
 - [:gear: Options](#gear-options)
 - [:spider_web: URL Parsing](#spider_web-url-parsing)
   - [Supported URLs](#supported-urls)
@@ -105,9 +107,9 @@ Lazier (documentation will not be available until first use):
     "GitDevClean",
     "GitDevCleanAll",
     "GitDevCloseBuffers",
+    "GitDevHistory",
     "GitDevOpen",
     "GitDevPersist",
-    "GitDevRecents",
     "GitDevToggleUI",
     "GitDevXDGHandle",
   },
@@ -238,21 +240,26 @@ override default window configuration.
 for this call.
 
 
-### :telescope: Telescope
+### :pick: Pickers
+Supports `mini.pick`, `snacks`, `telescope` and a fallback to `vim.ui.select`.
+By default, it will use the first picker provider it finds.
+See `pickers` in [Options](#gear-options) below.
 
-#### :bone: Recent Repositories
-Command: `GitDevRecents`
-Telescope: `Telescope git_dev recents`
+#### :rock: History
+API: `require("git-dev").pickers.history(local_opts)`
+Command: `GitDevHistory`
 
-Revisit previously opened repositories via a telescope extension.
+A picker for previously opened repositories.
 
 Opened repositories are tracked in a simple single file KV store. Its only
-purpose (currently) is to be queried by the telescope extension for a
-convenient way to re-open previously opened repositories.
+purpose (currently) is to be queried by the history picker for a convenient way
+to re-open previously opened repositories.
+
 See `history` in [Options](#gear-options) below.
 
 
 ## :gear: Options
+<!-- gitdev-config-start -->
 ```lua
 M.config = {
   -- Whether to delete an opened repository when nvim exits.
@@ -353,7 +360,7 @@ M.config = {
     ---@type "always"|"never"|"current"
     delete_repo_dir = "current",
   },
-  -- XDG handling of `nvim-getdev` URIs.
+  -- XDG handling of `nvim-gitdev` URIs.
   -- Requires: `xdg-mime` and `xdg-open`.
   xdg_handler = {
     enabled = false,
@@ -367,10 +374,45 @@ M.config = {
       content = '#!/usr/bin/env sh\nnvim -c GitDevXDGHandle\\ "$@"',
     },
   },
+  -- Picker configuration
+  ---@type GitDevPickerOpts
+  pickers = {
+    ---Nil for auto detection.
+    type = nil,
+    ---A configuration for the `history` picker
+    history = {
+      separator = {
+        text = " │ ",
+        hl_group = "WinSeparator",
+      },
+      entry = {
+        -- Defines the width ratios of `repo_utl`, `ref` and `selected_path`
+        -- in the picker's results / entries buffer. Setting a `width` below
+        -- will override the ratio defined for the entry part.
+        ratios = { 5, 2, 3 },
+        repo_url = {
+          -- Fixed width.
+          -- If `nil`, it will be determined by window width and the ratios
+          -- array above.
+          width = nil,
+          hl_group = "String",
+        },
+        ref = {
+          width = nil,
+          hl_group = "Tag",
+        },
+        selected_path = {
+          width = nil,
+          hl_group = "LineNr",
+        },
+      },
+    },
+  },
   -- More verbosity.
   verbose = false,
 }
 ```
+<!-- gitdev-config-end -->
 
 ## :spider_web: URL Parsing
 It is reasonable to assume that browsing arbitrary Git repositories will 

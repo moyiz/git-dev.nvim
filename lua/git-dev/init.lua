@@ -2,6 +2,7 @@ local M = {}
 
 local U = require "git-dev.utils"
 
+-- gitdev-config-start
 M.config = {
   -- Whether to delete an opened repository when nvim exits.
   -- If `true`, it will create an auto command for opened repositories
@@ -101,7 +102,7 @@ M.config = {
     ---@type "always"|"never"|"current"
     delete_repo_dir = "current",
   },
-  -- XDG handling of `nvim-getdev` URIs.
+  -- XDG handling of `nvim-gitdev` URIs.
   -- Requires: `xdg-mime` and `xdg-open`.
   xdg_handler = {
     enabled = false,
@@ -115,12 +116,48 @@ M.config = {
       content = '#!/usr/bin/env sh\nnvim -c GitDevXDGHandle\\ "$@"',
     },
   },
+  -- Picker configuration
+  ---@type GitDevPickerOpts
+  pickers = {
+    ---Nil for auto detection.
+    type = nil,
+    ---A configuration for the `history` picker
+    history = {
+      separator = {
+        text = " │ ",
+        hl_group = "WinSeparator",
+      },
+      entry = {
+        -- Defines the width ratios of `repo_utl`, `ref` and `selected_path`
+        -- in the picker's results / entries buffer. Setting a `width` below
+        -- will override the ratio defined for the entry part.
+        ratios = { 5, 2, 3 },
+        repo_url = {
+          -- Fixed width.
+          -- If `nil`, it will be determined by window width and the ratios
+          -- array above.
+          width = nil,
+          hl_group = "String",
+        },
+        ref = {
+          width = nil,
+          hl_group = "Tag",
+        },
+        selected_path = {
+          width = nil,
+          hl_group = "LineNr",
+        },
+      },
+    },
+  },
   -- More verbosity.
   verbose = false,
 }
+-- gitdev-config-end
 
 M.session = nil
 M.history = nil
+M.pickers = nil
 
 local cd_func = {
   global = U.cmd_to_func "cd",
@@ -536,6 +573,9 @@ M.setup = function(opts)
   ---@type GitDevSession
   M.session = require("git-dev.session"):init()
 
+  -- Configure picker
+  M.pickers = require("git-dev.pickers").setup(M.config.pickers)
+
   local xdg = require "git-dev.xdg"
   if M.config.xdg_handler.enabled then
     xdg.enable(M.config.xdg_handler)
@@ -595,11 +635,18 @@ M.setup = function(opts)
     complete = complete_from_session,
   })
 
-  vim.api.nvim_create_user_command(
-    "GitDevRecents",
-    "Telescope git_dev recents",
-    { desc = "Revisit previously opened repositories." }
-  )
+  -- TODO: Remove
+  vim.api.nvim_create_user_command("GitDevRecents", function()
+    vim.notify(
+      "'GitDevRecents' has been renamed to 'GitDevHistory' and will be removed in the future.",
+      vim.log.levels.WARN
+    )
+    M.pickers:history()
+  end, { desc = "Revisit previously opened repositories." })
+
+  vim.api.nvim_create_user_command("GitDevHistory", function()
+    M.pickers:history()
+  end, { desc = "Revisit previously opened repositories." })
 end
 
 return M
