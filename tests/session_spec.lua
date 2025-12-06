@@ -16,6 +16,10 @@ local function gen_repos()
       foo = "gas",
       foo2 = "gas2",
     },
+    {
+      foo = "test-hyphen",
+      foo2 = "test-hyphen2",
+    },
   }
   for i, repo in ipairs(repos) do
     repo.repo_dir = i
@@ -37,6 +41,7 @@ local filters_to_nr = {
     },
     1,
   },
+  { { { name = "foo", value = "test-h", type = "contains" } }, 1 },
 }
 
 local function test_sanity()

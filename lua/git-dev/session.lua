@@ -59,7 +59,7 @@ function Session:find(filters)
         filter.type == "equal"
           and not vim.deep_equal(repo_ctx[filter.name], filter.value)
         or filter.type == "contains"
-          and not repo_ctx[filter.name]:find(filter.value)
+          and not repo_ctx[filter.name]:find(filter.value, 1, true)
       then
         match = false
         break
