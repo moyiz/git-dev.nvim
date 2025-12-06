@@ -19,9 +19,9 @@ jobs:
         uses: kdheepak/panvimdoc@v4.0.1
         with:
           vimdoc: git-dev
-          inputFile: README.md
+          pandoc: README.md
           toc: true
-          vimVersion: "Neovim verion 0.9"
+          version: "NVIM v0.9"
           description: ""
           demojify: true
           treesitter: true
