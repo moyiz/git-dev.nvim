@@ -438,18 +438,24 @@ parsed fields.
   - `https://github.com/<repo>`
   - `https://github.com/<repo>.git`
   - `https://github.com/<repo>/tree/<branch>`
+  - `https://github.com/<repo>/tree/<commit>`
   - `https://github.com/<repo>/tree/<tag>`
   - `https://github.com/<repo>/blob/<branch>`
   - `https://github.com/<repo>/blob/<branch>/<file_path>`
+  - `https://github.com/<repo>/blob/<commit>`
+  - `https://github.com/<repo>/blob/<commit>/<file_path>`
   - `https://github.com/<repo>/blob/<tag>`
   - `https://github.com/<repo>/blob/<tag>/<file_path>`
 - GitLab
   - `https://gitlab.com/<repo>`
   - `https://gitlab.com/<repo>.git`
   - `https://gitlab.com/<repo>/-/tree/<branch>`
+  - `https://gitlab.com/<repo>/-/tree/<commit>`
   - `https://gitlab.com/<repo>/-/tree/<tag>`
   - `https://gitlab.com/<repo>/-/blob/<branch>`
   - `https://gitlab.com/<repo>/-/blob/<branch>/<file_path>`
+  - `https://gitlab.com/<repo>/-/blob/<commit>`
+  - `https://gitlab.com/<repo>/-/blob/<commit>/<file_path>`
   - `https://gitlab.com/<repo>/-/blob/<tag>`
   - `https://gitlab.com/<repo>/-/blob/<tag>/<file_path>`
 - Gitea

@@ -11,6 +11,9 @@ T.run = function()
         repo_url = "https://github.com/moyiz/git-dev.nvim.git",
         type = "http",
       },
+      remote_refs = {
+        { commit_id = "1", ref = "refs/heads/main" },
+      },
     },
     {
       url = "https://github.com/moyiz/git-dev.nvim/tree/url-parsing",
@@ -18,6 +21,9 @@ T.run = function()
         branch = "url-parsing",
         repo_url = "https://github.com/moyiz/git-dev.nvim.git",
         type = "http",
+      },
+      remote_refs = {
+        { commit_id = "1", ref = "refs/heads/url-parsing" },
       },
     },
     {
@@ -62,6 +68,9 @@ T.run = function()
         branch = "stable",
         type = "http",
       },
+      remote_refs = {
+        { commit_id = "1", ref = "refs/heads/stable" },
+      },
     },
     {
       url = "https://github.com/echasnovski/mini.nvim/tree/v0.12.0",
@@ -70,29 +79,44 @@ T.run = function()
         branch = "v0.12.0",
         type = "http",
       },
+      remote_refs = {
+        { commit_id = "1", ref = "refs/tags/v0.12.0" },
+      },
     },
     {
       url = "https://github.com/echasnovski/mini.nvim/blob/main/README.md",
       expected = {
         repo_url = "https://github.com/echasnovski/mini.nvim.git",
-        full_blob = "main/README.md",
+        branch = "main",
+        selected_path = "README.md",
         type = "http",
+      },
+      remote_refs = {
+        { id = "1", ref = "refs/heads/main" },
       },
     },
     {
       url = "https://github.com/echasnovski/mini.nvim/blob/stable/README.md",
       expected = {
         repo_url = "https://github.com/echasnovski/mini.nvim.git",
-        full_blob = "stable/README.md",
+        branch = "stable",
+        selected_path = "README.md",
         type = "http",
+      },
+      remote_refs = {
+        { id = "1", ref = "refs/heads/stable" },
       },
     },
     {
       url = "https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/basics.lua",
       expected = {
         repo_url = "https://github.com/echasnovski/mini.nvim.git",
-        full_blob = "main/lua/mini/basics.lua",
+        branch = "main",
+        selected_path = "lua/mini/basics.lua",
         type = "http",
+      },
+      remote_refs = {
+        { id = "1", ref = "refs/heads/main" },
       },
     },
     {
@@ -112,12 +136,61 @@ T.run = function()
         branch = "features/reuse-only",
         type = "http",
       },
+      remote_refs = {
+        { commit_id = "1", ref = "refs/heads/features/reuse-only" },
+      },
     },
     {
       url = "https://github.com/spack/spack/blob/features/reuse-only/.github/dependabot.yml",
       expected = {
         repo_url = "https://github.com/spack/spack.git",
-        full_blob = "features/reuse-only/.github/dependabot.yml",
+        branch = "features/reuse-only",
+        selected_path = ".github/dependabot.yml",
+        type = "http",
+      },
+      remote_refs = {
+        { commit_id = "1", ref = "refs/heads/features/reuse-only" },
+      },
+    },
+    {
+      url = "https://github.com/moyiz/git-dev.nvim/tree/d5f9302226852b80f58ef13e8353fda0cd78184e",
+      expected = {
+        repo_url = "https://github.com/moyiz/git-dev.nvim.git",
+        commit = "d5f9302226852b80f58ef13e8353fda0cd78184e",
+        type = "http",
+      },
+    },
+    {
+      url = "https://github.com/moyiz/git-dev.nvim/tree/d5f9302226852b8",
+      expected = {
+        repo_url = "https://github.com/moyiz/git-dev.nvim.git",
+        commit = "d5f9302226852b8",
+        type = "http",
+      },
+    },
+    {
+      url = "https://github.com/moyiz/git-dev.nvim/tree/d5f93022",
+      expected = {
+        repo_url = "https://github.com/moyiz/git-dev.nvim.git",
+        commit = "d5f93022",
+        type = "http",
+      },
+    },
+    {
+      url = "https://github.com/moyiz/git-dev.nvim/blob/d5f9302226852b80f58ef13e8353fda0cd78184e/.gitignore",
+      expected = {
+        repo_url = "https://github.com/moyiz/git-dev.nvim.git",
+        commit = "d5f9302226852b80f58ef13e8353fda0cd78184e",
+        selected_path = ".gitignore",
+        type = "http",
+      },
+    },
+    {
+      url = "https://github.com/moyiz/git-dev.nvim/blob/d5f9302226852/.gitignore",
+      expected = {
+        repo_url = "https://github.com/moyiz/git-dev.nvim.git",
+        commit = "d5f9302226852",
+        selected_path = ".gitignore",
         type = "http",
       },
     },
@@ -159,6 +232,9 @@ T.run = function()
         repo_url = "https://gitlab.com/gitlab-org/code-creation/repository-x-ray.git",
         branch = "1.1.0",
         type = "http",
+      },
+      remote_refs = {
+        { commit_id = "1", ref = "refs/tags/1.1.0" },
       },
     },
     {

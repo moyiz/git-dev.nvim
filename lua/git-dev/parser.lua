@@ -29,6 +29,10 @@ local function is_git_bundle(file_path)
   return sig == "git\001\n"
 end
 
+local function is_commit_id(text)
+  return text:find("^" .. ("%x"):rep(40) .. "$")
+end
+
 ---@class Parser
 ---@field gitcmd table
 ---@field base_uri_format string
@@ -50,7 +54,6 @@ end
 
 ---@class GitDevParsedRepo
 ---@field repo_url string
----@field full_blob? string
 ---@field commit? string
 ---@field branch? string
 ---@field selected_path? string
@@ -59,10 +62,10 @@ end
 -- Since branch / tag might include slashes, it is impossible to determine how
 -- to separate it from the optional trailing file path. `git ls-remote` is used
 -- to find the longest ref name that can be deducted from `text`. If none is
--- found, it will be tested as a commit ID. If it is invalid as a commit, it
--- will be notated as `full_blob`. Otherwise, it will be separated to `branch`
--- and `selected_path`. If there are no slashes, it can be assumed that the
--- full blob is actually a branch / tag name, and there is no trailed file path.
+-- found, it will be treated as an optionally partial commit ID and the rest of
+-- the blob will be treated as a selected path. If there are no slashes, it can
+-- be assumed that the full blob is actually a branch / tag name, and there is
+-- no trailed file path.
 function Parser:parse_full_blob(text, repo_url)
   if not text or text == "" then
     return {}
@@ -90,18 +93,12 @@ function Parser:parse_full_blob(text, repo_url)
     end
     ref = new_ref
   end
-  -- No such ref, first part might still be a commit ID.
+  -- No such ref, fallback to a commit ID (or part of it).
   if not ref then
-    -- If the first part looks like a valid commit ID, it probably is.
-    -- TODO: Find a better way. The repository is not cloned yet.
-    if parts[1]:find("^" .. ("%x"):rep(40) .. "$") then
-      return {
-        commit = parts[1],
-        selected_path = vim.fn.join(vim.list_slice(parts, 2), "/"),
-      }
-    else
-      return { full_blob = text }
-    end
+    return {
+      commit = parts[1],
+      selected_path = vim.fn.join(vim.list_slice(parts, 2), "/"),
+    }
   end
 
   -- Generate a selected path and trim leading slash.
@@ -114,9 +111,14 @@ end
 
 function Parser:parse_tree_or_full_blob(text, repo_url)
   local res = {}
-  local branch_or_tag = text:match "^/tree/(.*)$"
-  if branch_or_tag then
-    res.branch = branch_or_tag
+  local ref = text:match "^/tree/(.*)"
+  if ref and ref ~= "" then
+    local matches = self.gitcmd:list_refs_sync(repo_url, ref)
+    if #matches == 0 then
+      res.commit = ref
+    else
+      res.branch = ref
+    end
   else
     -- Full blob contains both the ref and the file path.
     -- Due to possible branch / tag names that contain `/`, the parser cannot
