@@ -229,7 +229,7 @@ M.open = function(repo, ref, opts)
     or parsed_repo.commit
     or parsed_repo.branch
 
-  if not branch and parsed_repo.full_blob then
+  if not branch then
     ui:print "Could not detect a ref in given URI, falling back to default."
   end
 
