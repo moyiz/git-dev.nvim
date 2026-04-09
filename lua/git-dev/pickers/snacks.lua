@@ -13,7 +13,10 @@ function pickers.history(local_opts)
     source = "git-dev",
     title = config.title,
     items = config.get_entries(),
-    confirm = function(_, item)
+    confirm = function(picker, item)
+      if picker then
+        picker:close()
+      end
       config.select_entry(item)
     end,
     format = function(item, p)

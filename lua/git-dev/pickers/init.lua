@@ -29,13 +29,15 @@ local P = {
       end,
       -- Action on selection
       select_entry = function(entry)
-        if entry then
-          require("git-dev").open(
-            entry.args.repo,
-            entry.args.ref,
-            entry.args.opts
-          )
-        end
+        vim.schedule(function()
+          if entry then
+            require("git-dev").open(
+              entry.args.repo,
+              entry.args.ref,
+              entry.args.opts
+            )
+          end
+        end)
       end,
       -- An array of an entry text parts
       label_parts = function(entry)
