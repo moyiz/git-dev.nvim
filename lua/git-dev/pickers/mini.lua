@@ -12,7 +12,10 @@ function pickers.history(local_opts)
     source = {
       name = config.title,
       items = config.get_entries,
-      choose = config.select_entry,
+      choose = function(item)
+        minipick.stop()
+        config.select_entry(item)
+      end,
       show = function(buf_id, items)
         local widths = picker_utils.normalize_width(
           vim.fn.winwidth(0), -- should deduct separator width
