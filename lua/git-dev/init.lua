@@ -341,7 +341,7 @@ M.open = function(repo, ref, opts)
     gitcmd:clone({
       repo_url = parsed_repo.repo_url,
       repo_dir = repo_dir,
-      branch = parsed_repo.branch,
+      branch = ref.branch or ref.tag or parsed_repo.branch,
       extra_args = config.git.clone_args,
     }, clone_callback)
   end
